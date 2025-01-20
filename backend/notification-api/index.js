@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const morgan = require('morgan'); // For logging requests
 const helmet = require('helmet'); // For security headers
-const sequelize = require('./config/db'); // Database connection
 const notificationRoutes = require('./routes/notifications'); // Notification routes
 const googleCalendarRoutes = require('./routes/googleCalendarRoutes'); // Google Calendar routes
 
@@ -16,21 +15,6 @@ app.use(cors()); // Enable CORS for all origins
 app.use(bodyParser.json()); // Parse incoming JSON requests
 app.use(morgan('dev')); // Log requests to the console
 app.use(helmet()); // Secure app with various HTTP headers
-
-// Test Database Connection and Sync Models
-(async () => {
-    try {
-        await sequelize.authenticate();
-        console.log('Database connection established successfully.');
-
-        // Sync models
-        await sequelize.sync({ alter: true }); // Use { force: true } to recreate tables (WARNING: Drops existing data)
-        console.log('Database models synchronized successfully.');
-    } catch (err) {
-        console.error('Unable to connect to the database or sync models:', err.message);
-        process.exit(1); // Exit the application if the database connection fails
-    }
-})();
 
 // Routes
 app.use('/api/notifications', notificationRoutes); // Notification-related routes

@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter
 class NotificationListener : NotificationListenerService() {
 
     private val TAG = "NotificationListener"
-    private val BACKEND_URL = "http://192.168.0.124:3000/api/notifications" // Replace with your backend URL
+    private val BACKEND_URL = "http://172.20.10.3:3000/api/notifications" // Replace with your backend URL
     private val client = OkHttpClient()
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
