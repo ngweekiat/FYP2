@@ -2,6 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db'); // Import the Firebase db instance from db.js
+const { extractEventDetails } = require('../helpers/eventextraction_llm');
+
 
 // Mock storage for notifications (replace with database later)
 let notifications = [];
@@ -69,6 +71,52 @@ router.post('/', async (req, res) => {
         return res.status(500).json({ message: 'Failed to save notification' });
     }
 });
+
+
+/**
+ * POST: Extract event details from a notification.
+ */
+router.post('/extract-event', async (req, res) => {
+    const { notificationId } = req.body;
+
+    if (!notificationId) {
+        return res.status(400).json({ message: 'Missing required field: notificationId' });
+    }
+
+    try {
+        // Search for the notification by the `id` field
+        const snapshot = await db.collection('notifications').where('id', '==', notificationId).get();
+
+        if (snapshot.empty) {
+            return res.status(404).json({ message: 'Notification not found', id: notificationId });
+        }
+
+        // Assuming `id` is unique, get the first matching document
+        const doc = snapshot.docs[0];
+        const notification = doc.data();
+        const { title, bigText, timestamp } = notification;
+
+        // Combine fields into a single input text for OpenAI
+        const notificationText = `${title}\n${bigText}\nTimestamp: ${timestamp}`;
+
+        // Extract calendar event details
+        const eventDetails = await extractEventDetails(notificationText);
+
+        // Save extracted event to a 'calendar_events' collection
+        await db.collection('calendar_events').doc(doc.id).set(eventDetails);
+
+        res.status(200).json({
+            message: 'Calendar event extracted successfully',
+            eventDetails,
+        });
+    } catch (error) {
+        console.error('Error extracting calendar event:', error);
+        res.status(500).json({ message: 'Failed to extract calendar event', error: error.message });
+    }
+});
+
+
+
 
 /**
  * GET: Retrieve all successful notifications.

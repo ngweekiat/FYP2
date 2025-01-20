@@ -3,8 +3,9 @@ const path = require('path');
 const fs = require('fs');
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
-const CREDENTIALS_PATH = path.join(__dirname, 'credentials', 'google-calendar-credentials.json');
-const TOKEN_PATH = path.join(__dirname, 'credentials', 'google-calendar-token.json');
+const CREDENTIALS_PATH = path.join(__dirname, '../config/credentials/google-calendar-credentials.json');
+const TOKEN_PATH = path.join(__dirname, '../config/credentials/google-calendar-token.json');
+
 
 
 let oAuth2Client;
