@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { initializeOAuth, getAuthUrl, saveToken, addEvent } = require('../googleCalendar');
+const { initializeOAuth, getAuthUrl, saveToken, addEvent } = require('../config/googleCalendar');
 
 // Initialize OAuth Client
 try {

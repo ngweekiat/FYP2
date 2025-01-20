@@ -2,7 +2,7 @@
 const admin = require('firebase-admin');
 
 // Correct path to your Firebase service account key
-const serviceAccount = require('C:/Users/ngwee/Downloads/Desktop/FYP/backend/notification-api/fypeventcalendar2-firebase-adminsdk-fbsvc-7906e9e0c4.json');
+const serviceAccount = require('C:/Users/ngwee/Downloads/Desktop/FYP/backend/notification-api/config/credentials/fypeventcalendar2-firebase-adminsdk-fbsvc-7906e9e0c4.json');
 
 // Initialize Firebase only once
 if (!admin.apps.length) {
