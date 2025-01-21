@@ -76,6 +76,13 @@ dependencies {
     // OkHttp for Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
+    // Calendar function
+    implementation ("com.kizitonwose.calendar:compose:2.5.0")
+
+    // Kotlinx.datetime dependency
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0") // Replace with the latest version
+
+
     // Unit Testing
     testImplementation("junit:junit:4.13.2")
 

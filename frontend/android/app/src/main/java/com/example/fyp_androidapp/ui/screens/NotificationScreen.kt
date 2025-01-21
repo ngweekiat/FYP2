@@ -94,7 +94,9 @@ fun NotificationsScreen() {
             EventPopupDialog(
                 eventDetails = EventDetails(
                     title = notification.title,
-                    location = notification.content.substringBefore("\n"), // Extract location or main content
+                    description = notification.content, // Populate description with the notification content
+                    locationOrMeeting = notification.content.substringBefore("\n"), // Extract location or meeting info if present
+                    allDay = false, // Default to false; user can toggle
                     startDate = "Aug 30, 2023", // Example static date
                     startTime = "12:00 PM",    // Example static time
                     endDate = "Aug 30, 2023",  // Example static end date

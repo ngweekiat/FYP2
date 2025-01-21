@@ -2,14 +2,11 @@ package com.example.fyp_androidapp.data.models
 
 data class EventDetails(
     val title: String = "",
-    val location: String = "",
-    val allDay: Boolean = false,
-    val startDate: String = "",
-    val startTime: String = "",
-    val endDate: String = "",
-    val endTime: String = "",
-    val travelTime: String = "None",
-    val repeat: String = "Never",
-    val alert: String = "None",
-    val guests: List<String> = emptyList()
+    val description: String = "",
+    val allDay: Boolean = false, // All day button
+    val startDate: String = "", // Start date
+    val startTime: String = "", // Start time
+    val endDate: String = "", // End date
+    val endTime: String = "", // End time
+    val locationOrMeeting: String = "" // Add location/meeting time
 )
