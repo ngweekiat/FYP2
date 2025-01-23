@@ -26,9 +26,8 @@ fun CalendarScreen() {
     val years = (2000..2030).toList()
     val events = remember {
         mapOf(
-            LocalDate(2025, Month.JANUARY, 3) to listOf("Meeting at 10 AM", "Lunch with Sarah"),
-            LocalDate(2025, Month.JANUARY, 5) to listOf("Doctor's Appointment"),
-            LocalDate(2025, Month.JANUARY, 15) to listOf("Project Deadline", "Team Standup")
+            LocalDate(2025, Month.JANUARY, 3) to listOf("10:00 AM - Meeting with Team", "1:00 PM - Lunch with Sarah"),
+            LocalDate(2025, Month.JANUARY, 5) to listOf("3:00 PM - Doctor's Appointment"),
         )
     }
 
