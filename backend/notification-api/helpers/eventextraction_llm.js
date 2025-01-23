@@ -24,10 +24,18 @@ async function extractEventDetails(notificationText) {
           role: "user",
           content: `
           Extract a calendar event from the following text. 
-          Identify the event title, start date, start time, location (if available), and a brief description. 
+          Identify the event title, description, whether it is an all-day event, start date, start time, end date, and end time. 
           Always provide the result in **valid JSON** format with the following fields: 
-          { "title": "", "start_date": "", "start_time": "", "location": "", "description": "" }. 
-          If specific details are not found, populate the fields with empty strings. 
+          {
+            "title": "",
+            "description": "",
+            "all_day_event": false, 
+            "start_date": "", 
+            "start_time": "", 
+            "end_date": "", 
+            "end_time": ""
+          }. 
+          If specific details are not found, populate the fields with empty strings or set "all_day_event" to false by default. 
           Text: "${notificationText}"
         `,
         },
@@ -36,7 +44,7 @@ async function extractEventDetails(notificationText) {
 
     console.log('OpenAI Response:', JSON.stringify(response, null, 2)); // Pretty-print full response
     console.log('Message Content:', response.choices[0]?.message?.content); // Log the content directly
-    
+
     const extractedDetails = response.choices[0].message.content.trim();
 
     try {
@@ -50,6 +58,5 @@ async function extractEventDetails(notificationText) {
     throw error;
   }
 }
-
 
 module.exports = { extractEventDetails };

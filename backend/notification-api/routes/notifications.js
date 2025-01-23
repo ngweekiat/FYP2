@@ -51,13 +51,36 @@ router.post('/', async (req, res) => {
         });
     }
 
+    // Ignore group summary notifications
+    if (req.body.isGroupSummary) {
+        console.log(`Group summary notification ignored: ${req.body.key}`);
+        return res.status(200).json({
+            message: 'Group summary notification ignored',
+            notification: req.body,
+        });
+    }
+
     const notification = {
         id: notifications.length + 1,
         ...req.body,
     };
 
-    // Store the notification in Firestore
     try {
+        // Check if a notification with the same timestamp already exists in Firestore
+        const existingSnapshot = await db
+            .collection('notifications')
+            .where('timestamp', '==', notification.timestamp)
+            .get();
+
+        if (!existingSnapshot.empty) {
+            console.warn(`Notification with timestamp ${notification.timestamp} already exists.`);
+            return res.status(409).json({
+                message: `Notification with timestamp ${notification.timestamp} already exists`,
+                existingNotification: existingSnapshot.docs[0].data(),
+            });
+        }
+
+        // Store the notification in Firestore if it doesn't already exist
         const docRef = await db.collection('notifications').add(notification);
         notifications.push(notification);
 
@@ -71,6 +94,8 @@ router.post('/', async (req, res) => {
         return res.status(500).json({ message: 'Failed to save notification' });
     }
 });
+
+
 
 
 /**
@@ -102,11 +127,23 @@ router.post('/extract-event', async (req, res) => {
         // Extract calendar event details
         const eventDetails = await extractEventDetails(notificationText);
 
+        // Check if the eventDetails object contains meaningful data
+        const isEventValid = eventDetails.title || eventDetails.start_date || eventDetails.start_time;
+
+        if (!isEventValid) {
+            // If the event does not contain enough meaningful details, do not save it
+            console.warn('No valid event details found in notification:', eventDetails);
+            return res.status(400).json({
+                message: 'No valid event details extracted from the notification',
+                eventDetails,
+            });
+        }
+
         // Save extracted event to a 'calendar_events' collection
         await db.collection('calendar_events').doc(doc.id).set(eventDetails);
 
         res.status(200).json({
-            message: 'Calendar event extracted successfully',
+            message: 'Calendar event extracted and saved successfully',
             eventDetails,
         });
     } catch (error) {
@@ -114,6 +151,7 @@ router.post('/extract-event', async (req, res) => {
         res.status(500).json({ message: 'Failed to extract calendar event', error: error.message });
     }
 });
+
 
 
 

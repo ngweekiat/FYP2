@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter
 class NotificationListener : NotificationListenerService() {
 
     private val TAG = "NotificationListener"
-    private val BACKEND_URL = "http://172.20.10.3:3000/api/notifications" // Replace with your backend URL
+    private val BACKEND_URL = "http://192.168.0.124:3000/api/notifications" // Replace with your backend URL
     private val client = OkHttpClient()
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -35,8 +35,8 @@ class NotificationListener : NotificationListenerService() {
         val key = sbn.key
         val groupKey = sbn.groupKey
         val group = sbn.notification.group
-        val postTime = sbn.postTime
-        val iso8601PostTime = Instant.ofEpochMilli(postTime)//Convert to iso time
+        val whenTime = sbn.notification.`when` // Specific timestamp for when the notification was created
+        val iso8601whenTime = Instant.ofEpochMilli(whenTime)//Convert to iso time
             .atZone(ZoneOffset.UTC)
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
         val isOngoing = sbn.isOngoing
@@ -105,7 +105,7 @@ class NotificationListener : NotificationListenerService() {
             notificationData.put("people", JSONArray(peopleList)) // Updated
             notificationData.put("template", template)
             notificationData.put("remoteInputHistory", JSONArray(remoteInputHistory))
-            notificationData.put("timestamp", iso8601PostTime)
+            notificationData.put("timestamp", iso8601whenTime)
             notificationData.put("id", id)
             notificationData.put("tag", tag)
             notificationData.put("key", key)
