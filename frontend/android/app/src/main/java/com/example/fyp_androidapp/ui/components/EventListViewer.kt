@@ -39,7 +39,8 @@ fun EventListViewer(
                 Text(text = "No events on ${selectedDate.toString()}.")
             }
         } else {
-            Text(text = "Select a date to view events.")
+            Text(
+                text = "Select a date to view events.",)
         }
     }
 }

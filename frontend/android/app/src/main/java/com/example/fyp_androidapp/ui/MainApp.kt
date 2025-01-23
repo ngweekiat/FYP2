@@ -22,7 +22,6 @@ fun MainApp() {
     // Define tabs
     val tabs = listOf(
         TableItem("Notifications", Icons.Default.Notifications, "notifications"),
-        TableItem("Events", Icons.Default.DateRange, "events"), // Replace Event with DateRange
         TableItem("Calendar", Icons.Default.CalendarToday, "calendar"),
         TableItem("Settings", Icons.Default.Settings, "settings")
     )
@@ -42,7 +41,6 @@ fun MainApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("notifications") { NotificationsScreen() }
-            composable("events") { EventsScreen() }
             composable("calendar") { CalendarScreen() }
             composable("settings") { SettingsScreen() }
         }

@@ -2,6 +2,8 @@ package com.example.fyp_androidapp.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,89 +36,110 @@ fun CalendarScreen() {
     var isPopupVisible by remember { mutableStateOf(false) }
     var selectedEventDetails by remember { mutableStateOf(EventDetails()) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            Box {
-                Text(
-                    text = month.name.lowercase().replaceFirstChar { it.uppercase() },
-                    modifier = Modifier.clickable { isMonthDropdownExpanded = true },
-                    style = MaterialTheme.typography.titleMedium
-                )
-                DropdownMenu(
-                    expanded = isMonthDropdownExpanded,
-                    onDismissRequest = { isMonthDropdownExpanded = false }
-                ) {
-                    Month.values().forEach { m ->
-                        DropdownMenuItem(
-                            text = { Text(m.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                            onClick = {
-                                month = m
-                                isMonthDropdownExpanded = false
-                            }
-                        )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box {
+                    Text(
+                        text = month.name.lowercase().replaceFirstChar { it.uppercase() },
+                        modifier = Modifier.clickable { isMonthDropdownExpanded = true },
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    DropdownMenu(
+                        expanded = isMonthDropdownExpanded,
+                        onDismissRequest = { isMonthDropdownExpanded = false }
+                    ) {
+                        Month.values().forEach { m ->
+                            DropdownMenuItem(
+                                text = { Text(m.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                onClick = {
+                                    month = m
+                                    isMonthDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Box {
+                    Text(
+                        text = year.toString(),
+                        modifier = Modifier.clickable { isYearDropdownExpanded = true },
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    DropdownMenu(
+                        expanded = isYearDropdownExpanded,
+                        onDismissRequest = { isYearDropdownExpanded = false }
+                    ) {
+                        years.forEach { y ->
+                            DropdownMenuItem(
+                                text = { Text(y.toString()) },
+                                onClick = {
+                                    year = y
+                                    isYearDropdownExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Box {
-                Text(
-                    text = year.toString(),
-                    modifier = Modifier.clickable { isYearDropdownExpanded = true },
-                    style = MaterialTheme.typography.titleMedium
-                )
-                DropdownMenu(
-                    expanded = isYearDropdownExpanded,
-                    onDismissRequest = { isYearDropdownExpanded = false }
-                ) {
-                    years.forEach { y ->
-                        DropdownMenuItem(
-                            text = { Text(y.toString()) },
-                            onClick = {
-                                year = y
-                                isYearDropdownExpanded = false
-                            }
-                        )
-                    }
+            CalendarViewer(
+                year = year,
+                month = month,
+                selectedDate = selectedDate,
+                onDateSelected = { selectedDate = it },
+                events = events
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            EventListViewer(
+                selectedDate = selectedDate,
+                events = events,
+                onEventSelected = {
+                    selectedEventDetails = it
+                    isPopupVisible = true
                 }
-            }
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        CalendarViewer(
-            year = year,
-            month = month,
-            selectedDate = selectedDate,
-            onDateSelected = { selectedDate = it },
-            events = events
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        EventListViewer(
-            selectedDate = selectedDate,
-            events = events,
-            onEventSelected = {
-                selectedEventDetails = it
+        // Floating Action Button
+        FloatingActionButton(
+            onClick = {
+                selectedEventDetails = EventDetails() // Reset event details for new event
                 isPopupVisible = true
-            }
-        )
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add, // Requires androidx.compose.material.icons.*
+                contentDescription = "Add Event"
+            )
+        }
     }
 
     if (isPopupVisible) {
         EventPopupDialog(
             eventDetails = selectedEventDetails,
-            onSave = { isPopupVisible = false },
+            onSave = {
+                // Handle saving event details here
+                isPopupVisible = false
+            },
             onDismiss = { isPopupVisible = false }
         )
     }

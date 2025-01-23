@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import android.view.View
 
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +55,6 @@ fun MainApp() {
     // Define tab items
     val tabs = listOf(
         TableItem("Notifications", Icons.Default.Notifications, "notifications"),
-        TableItem("Events", Icons.Default.Event, "events"),
         TableItem("Calendar", Icons.Default.CalendarToday, "calendar"),
         TableItem("Settings", Icons.Default.Settings, "settings")
     )
@@ -74,7 +74,6 @@ fun MainApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("notifications") { NotificationsScreen() }
-            composable("events") { EventsScreen() }
             composable("calendar") { CalendarScreen() }
             composable("settings") { SettingsScreen() }
         }
