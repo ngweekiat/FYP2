@@ -206,6 +206,52 @@ router.get('/failed', (req, res) => {
     });
 });
 
+
+// Burner code to download to excel
+// call http://localhost:3000/notifications/export
+const XLSX = require('xlsx'); // Install the 'xlsx' package: npm install xlsx
+
+/**
+ * GET: Download the entire notification collection as an Excel file.
+ */
+router.get('/export', async (req, res) => {
+    try {
+        // Fetch all notifications from the 'notifications' collection
+        const snapshot = await db.collection('notifications').get();
+
+        if (snapshot.empty) {
+            return res.status(404).json({ message: 'No notifications found' });
+        }
+
+        // Map the snapshot documents to an array of objects
+        const notifications = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+
+        // Create a worksheet from the notifications data
+        const worksheet = XLSX.utils.json_to_sheet(notifications);
+
+        // Create a new workbook and append the worksheet
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Notifications');
+
+        // Write the workbook to a buffer
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        // Set the appropriate headers for file download
+        res.setHeader('Content-Disposition', 'attachment; filename="notifications.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        // Send the buffer as a response
+        res.status(200).send(buffer);
+    } catch (error) {
+        console.error('Error exporting notifications to Excel:', error);
+        res.status(500).json({ message: 'Failed to export notifications', error: error.message });
+    }
+});
+
+
 module.exports = router;
 
 

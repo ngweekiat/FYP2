@@ -65,7 +65,7 @@ fun NotificationsScreen() {
                                 title = item.optString("title", "No Title"),
                                 content = item.optString("bigText", item.optString("text", "No Content")),
                                 time = item.optString("timestamp", "Unknown Time"),
-                                isImportant = false
+                                isImportant = true
                             )
                         )
                     }
