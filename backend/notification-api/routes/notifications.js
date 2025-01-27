@@ -157,22 +157,44 @@ router.post('/extract-event', async (req, res) => {
 
 
 /**
- * GET: Retrieve all successful notifications.
+ * GET: Retrieve paginated notifications.
  */
 router.get('/', async (req, res) => {
+    const limit = parseInt(req.query.limit) || 20; // Default limit to 20 if not specified
+    const startAfter = req.query.startAfter || null; // Start point for pagination
+
     try {
-        const snapshot = await db.collection('notifications').get();
-        const notifications = snapshot.docs.map(doc => doc.data());
-        
+        let query = db.collection('notifications').orderBy('timestamp', 'desc').limit(limit);
+
+        if (startAfter) {
+            const snapshot = await db.collection('notifications').doc(startAfter).get();
+            if (snapshot.exists) {
+                query = query.startAfter(snapshot);
+            } else {
+                return res.status(400).json({ message: 'Invalid startAfter value' });
+            }
+        }
+
+        const snapshot = await query.get();
+
+        const notifications = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+
+        const lastVisible = snapshot.docs[snapshot.docs.length - 1]; // Get the last document
+
         res.status(200).json({
-            message: 'All Notifications',
+            message: 'Notifications retrieved successfully',
             notifications,
+            lastVisible: lastVisible ? lastVisible.id : null, // Return the last document ID for next fetch
         });
     } catch (error) {
         console.error('Error retrieving notifications:', error);
         res.status(500).json({ message: 'Failed to retrieve notifications' });
     }
 });
+
 
 /**
  * GET: Retrieve all failed notifications.
