@@ -210,6 +210,34 @@ router.post('/extract-event', async (req, res) => {
     }
 });
 
+/**
+ * GET: Retrieve a calendar event by ID.
+ */
+router.get('/calendar_events/:id', async (req, res) => {
+    const eventId = req.params.id;
+
+    try {
+        // Search for the event document in Firestore by ID
+        const snapshot = await db.collection('calendar_events').where('id', '==', eventId).get();
+
+        if (snapshot.empty) {
+            return res.status(404).json({ message: 'Calendar event not found', id: eventId });
+        }
+
+        // Assuming ID is unique, return the first document found
+        const doc = snapshot.docs[0];
+        const eventData = doc.data();
+
+        res.status(200).json({
+            message: 'Calendar event retrieved successfully',
+            event: eventData,
+        });
+    } catch (error) {
+        console.error('Error retrieving calendar event:', error);
+        res.status(500).json({ message: 'Failed to retrieve calendar event', error: error.message });
+    }
+});
+
 
 
 
