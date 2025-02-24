@@ -13,50 +13,58 @@ const openai = new OpenAI({
  */
 async function extractEventDetails(notificationText) {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
+    // Log the request payload before sending it to OpenAI
+    const requestPayload = {
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant for extracting calendar events.",
+          content: "You are a helpful assistant that extracts calendar event details. Always respond **only** in valid JSON format without any extra text.",
         },
         {
           role: "user",
-          content: `
-          Extract a calendar event from the following text. 
-          Identify the event title, description, whether it is an all-day event, start date, start time, end date, and end time. 
-          Always provide the result in **valid JSON** format with the following fields: 
+          content: `Extract a calendar event from the following text: "${notificationText}". 
+          Respond **only** with a valid JSON object that follows this structure: 
           {
-            "title": "",
-            "description": "",
+            "title": "Event Title",
+            "description": "Optional event description",
             "all_day_event": false, 
-            "start_date": "", 
-            "start_time": "", 
-            "end_date": "", 
-            "end_time": ""
-          }. 
-          If specific details are not found, populate the fields with empty strings or set "all_day_event" to false by default. 
-          Text: "${notificationText}"
-        `,
+            "start_date": "YYYY-MM-DD", 
+            "start_time": "HH:MM", 
+            "end_date": "YYYY-MM-DD", 
+            "end_time": "HH:MM"
+          }.
+          If certain fields are missing, use empty strings ("") but **do not return additional text**.
+          `,
         },
       ],
-    });
+      response_format: { type: "json_object" }, // Ensure OpenAI enforces JSON response
+    };
 
-    console.log('OpenAI Response:', JSON.stringify(response, null, 2)); // Pretty-print full response
-    console.log('Message Content:', response.choices[0]?.message?.content); // Log the content directly
+    console.log("🟢 [DEBUG] Sending request to OpenAI:", JSON.stringify(requestPayload, null, 2));
 
-    const extractedDetails = response.choices[0].message.content.trim();
+    // Send request to OpenAI
+    const response = await openai.chat.completions.create(requestPayload);
 
-    try {
-      return JSON.parse(extractedDetails);
-    } catch (parseError) {
-      console.error('Error parsing JSON:', extractedDetails); // Log the problematic response
-      throw new Error("Failed to parse JSON response from OpenAI");
+    console.log("🟡 [DEBUG] OpenAI Response:", JSON.stringify(response, null, 2)); // Log full response
+
+    // Extract response content
+    const extractedDetails = response.choices[0]?.message?.content.trim();
+
+    if (!extractedDetails) {
+      throw new Error("OpenAI returned an empty response");
     }
+
+    console.log("✅ [DEBUG] Extracted JSON String:", extractedDetails);
+
+    // Parse JSON response
+    return JSON.parse(extractedDetails);
   } catch (error) {
-    console.error("Error extracting event details:", error);
+    console.error("🚨 [ERROR] Error extracting event details:", error);
     throw error;
   }
 }
+
+
 
 module.exports = { extractEventDetails };

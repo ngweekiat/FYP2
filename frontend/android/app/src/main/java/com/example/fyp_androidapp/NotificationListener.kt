@@ -16,8 +16,12 @@ import org.json.JSONObject;
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.security.MessageDigest
 
-
+fun generateHashedId(input: String): String {
+    val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+    return bytes.joinToString("") { "%02x".format(it) }.take(16) // Use first 16 chars for brevity
+}
 
 class NotificationListener : NotificationListenerService() {
 
@@ -28,9 +32,11 @@ class NotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
 
+
+
         // Extract notification details
         val packageName = sbn.packageName
-        val id = sbn.id
+
         val tag = sbn.tag
         val key = sbn.key
         val groupKey = sbn.groupKey
@@ -76,14 +82,18 @@ class NotificationListener : NotificationListenerService() {
 
         val actions = notification.actions
 
-        // Get the full application name
+        // Generate unique ID from the hash value of rawID
+        val rawId = "$key|$iso8601whenTime"
+        val id = generateHashedId(rawId)
+
+        // Fetch application name safely
         val appName = try {
             val packageManager = packageManager
             val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
             packageManager.getApplicationLabel(applicationInfo).toString()
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching app name for package: $packageName, ${e.message}")
-            packageName // Fallback to package name if app name can't be retrieved
+            packageName // Fallback to package name
         }
 
         Log.d(TAG, "App Name: $appName")

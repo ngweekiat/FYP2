@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db'); // Import the Firebase db instance from db.js
 const { extractEventDetails } = require('../helpers/eventextraction_llm');
+const { detectEventInNotification } = require('../helpers/notification_importance_llm'); // Import event detection function
 
 
 // Mock storage for notifications (replace with database later)
@@ -29,7 +30,7 @@ function validateNotificationPayload(payload) {
 }
 
 /**
- * POST: Receive a new notification.
+ * POST: Receive a new notification and automatically extract event details if applicable.
  */
 router.post('/', async (req, res) => {
     const validationError = validateNotificationPayload(req.body);
@@ -66,40 +67,77 @@ router.post('/', async (req, res) => {
     };
 
     try {
-        // Check if a notification with the same timestamp already exists in Firestore
+        // Check if a notification with the same id already exists in Firestore
         const existingSnapshot = await db
             .collection('notifications')
-            .where('timestamp', '==', notification.timestamp)
+            .where('id', '==', notification.id)
             .get();
-
+    
         if (!existingSnapshot.empty) {
-            console.warn(`Notification with timestamp ${notification.timestamp} already exists.`);
+            console.warn(`Notification with id ${notification.id} already exists.`);
             return res.status(409).json({
-                message: `Notification with timestamp ${notification.timestamp} already exists`,
+                message: `Notification with id ${notification.id} already exists`,
                 existingNotification: existingSnapshot.docs[0].data(),
             });
         }
 
-        // Store the notification in Firestore if it doesn't already exist
+        // Store the notification in Firestore
         const docRef = await db.collection('notifications').add(notification);
         notifications.push(notification);
 
         console.log('Received Notification:', notification);
+
+        // Combine text fields into one message for processing
+        const notificationText = `${notification.title || ''}\n${notification.text || ''}\n${notification.bigText || ''}\nTimestamp: ${notification.timestamp || ''}`;
+
+        // Detect if notification contains an event
+        const isImportant = await detectEventInNotification(notificationText);
+
+        // Update the notification document with the importance field
+        await db.collection('notifications').doc(docRef.id).update({
+            notification_importance: isImportant
+        });
+
+        if (isImportant === 1) {
+            console.log('🔍 Notification contains an event, extracting details...');
+
+            // Extract calendar event details
+            const eventDetails = await extractEventDetails(notificationText);
+
+            // Check if extracted event is meaningful
+            const isEventValid = eventDetails.title || eventDetails.start_date || eventDetails.start_time;
+
+            if (isEventValid) {
+                console.log('✅ Valid event extracted:', eventDetails);
+
+                // Save extracted event to 'calendar_events'
+                await db.collection('calendar_events').doc(docRef.id).set(
+                    { ...eventDetails, id: notification.id },
+                    { merge: true }
+                );
+            } else {
+                console.warn('⚠️ No valid event details found in notification:', eventDetails);
+            }
+        } else {
+            console.log('ℹ️ Notification does not contain an important event.');
+        }
+
         return res.status(201).json({
-            message: 'Notification received',
+            message: 'Notification received and processed',
             notification,
         });
     } catch (error) {
-        console.error('Error saving notification:', error);
-        return res.status(500).json({ message: 'Failed to save notification' });
+        console.error('🚨 Error processing notification:', error);
+        return res.status(500).json({ message: 'Failed to process notification' });
     }
 });
 
 
 
 
+
 /**
- * POST: Extract event details from a notification.
+ * POST: Extract event details from a notification if it's important.
  */
 router.post('/extract-event', async (req, res) => {
     const { notificationId } = req.body;
@@ -119,10 +157,26 @@ router.post('/extract-event', async (req, res) => {
         // Assuming `id` is unique, get the first matching document
         const doc = snapshot.docs[0];
         const notification = doc.data();
-        const { title, bigText, timestamp } = notification;
+        const { title, text, bigText, timestamp } = notification;
 
         // Combine fields into a single input text for OpenAI
-        const notificationText = `${title}\n${bigText}\nTimestamp: ${timestamp}`;
+        const notificationText = `${title || ''}\n${text || ''}\n${bigText || ''}\nTimestamp: ${timestamp || ''}`;
+
+        // Check if the notification contains an important event
+        const isImportant = await detectEventInNotification(notificationText);
+
+        // Update the notification document with the importance field
+        await db.collection('notifications').doc(doc.id).update({
+            notification_importance: isImportant
+        });
+
+        if (isImportant !== 1) {
+            console.warn('Notification does not contain an important event:', notificationText);
+            return res.status(400).json({
+                message: 'Notification does not contain an important event, skipping extraction.',
+                notificationId,
+            });
+        }
 
         // Extract calendar event details
         const eventDetails = await extractEventDetails(notificationText);
@@ -140,7 +194,11 @@ router.post('/extract-event', async (req, res) => {
         }
 
         // Save extracted event to a 'calendar_events' collection
-        await db.collection('calendar_events').doc(doc.id).set(eventDetails);
+        await db.collection('calendar_events').doc(doc.id).set(
+            { ...eventDetails, id: notificationId },
+            { merge: true }
+        );
+        
 
         res.status(200).json({
             message: 'Calendar event extracted and saved successfully',
@@ -164,8 +222,11 @@ router.get('/', async (req, res) => {
     const startAfter = req.query.startAfter || null; // Start point for pagination
 
     try {
-        let query = db.collection('notifications').orderBy('timestamp', 'desc').limit(limit);
-
+        let query = db.collection('notifications')
+            .where('category', 'in', ['email', 'msg'])
+            .orderBy('timestamp', 'desc')
+            .limit(limit);
+            
         if (startAfter) {
             const snapshot = await db.collection('notifications').doc(startAfter).get();
             if (snapshot.exists) {
