@@ -17,6 +17,8 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.security.MessageDigest
+import com.example.fyp_androidapp.Constants
+
 
 fun generateHashedId(input: String): String {
     val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
@@ -26,7 +28,7 @@ fun generateHashedId(input: String): String {
 class NotificationListener : NotificationListenerService() {
 
     private val TAG = "NotificationListener"
-    private val BACKEND_URL = "http://192.168.0.124:3000/api/notifications" // Replace with your backend URL
+    private val BACKEND_URL = "${Constants.BASE_URL}/notifications"
     private val client = OkHttpClient()
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {

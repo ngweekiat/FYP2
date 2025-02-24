@@ -25,6 +25,7 @@ import org.json.JSONObject
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.example.fyp_androidapp.Constants
 
 
 
@@ -33,7 +34,7 @@ fun NotificationsScreen() {
     var notifications by remember { mutableStateOf(listOf<Notification>()) }
     var isLoading by remember { mutableStateOf(false) }
     var lastVisible by remember { mutableStateOf<String?>(null) }
-    val backendUrl = "http://192.168.0.124:3000/api/notifications"
+    val backendUrl = "${Constants.BASE_URL}/notifications"
 
 
     // State to track dialog visibility and the selected notification
