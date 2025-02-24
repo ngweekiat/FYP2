@@ -14,12 +14,10 @@ import com.example.fyp_androidapp.data.models.Notification
 @Composable
 fun NotificationCard(
     notification: Notification,
+    statusMessage: String?,
     onAdd: () -> Unit,
     onDiscard: () -> Unit
 ) {
-    var statusMessage by remember { mutableStateOf(notification.status) }
-    var isActionPerformed by remember { mutableStateOf(false) }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -48,7 +46,6 @@ fun NotificationCard(
                 }
             }
 
-            // Title (only displayed if non-empty)
             if (notification.title.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -59,7 +56,6 @@ fun NotificationCard(
                 )
             }
 
-            // Content (only displayed if non-empty)
             if (notification.content.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 val contentWithoutDate = notification.content.substringBefore("\n")
@@ -70,23 +66,20 @@ fun NotificationCard(
                 )
             }
 
-            // Status or Extracted Date with Bar (only if `statusMessage` is not null or empty)
             statusMessage?.let { status ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val statusBoxColor =
-                        if (status == "Event Discarded") MaterialTheme.colorScheme.error
+                        if (status.contains("Event Discarded")) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.primary
 
                     val statusTextColor =
-                        if (status == "Event Discarded") MaterialTheme.colorScheme.error
+                        if (status.contains("Event Discarded")) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.primary
 
-                    // Status Box
                     Box(
                         modifier = Modifier
                             .width(4.dp)
@@ -95,7 +88,6 @@ fun NotificationCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Status Text
                     Text(
                         text = status,
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
@@ -104,8 +96,7 @@ fun NotificationCard(
                 }
             }
 
-            // Buttons for Actions
-            if (!isActionPerformed && notification.isImportant) {
+            if (!notification.isActionPerformed && notification.isImportant) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -113,8 +104,7 @@ fun NotificationCard(
                 ) {
                     Button(
                         onClick = {
-                            statusMessage = "Static Extracted Date: 30 Aug, 4PM"
-                            isActionPerformed = true
+                            notification.isActionPerformed = true  // Update state at source
                             onAdd()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -125,8 +115,7 @@ fun NotificationCard(
                     }
                     OutlinedButton(
                         onClick = {
-                            statusMessage = "Event Discarded"
-                            isActionPerformed = true
+                            notification.isActionPerformed = true  // Update state at source
                             onDiscard()
                         },
                         modifier = Modifier.weight(1f),

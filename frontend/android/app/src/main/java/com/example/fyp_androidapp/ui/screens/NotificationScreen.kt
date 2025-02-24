@@ -20,8 +20,12 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.time.ZonedDateTime
 import java.time.ZoneId
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import com.example.fyp_androidapp.Constants
+
+
 
 @Composable
 fun NotificationsScreen() {
@@ -35,13 +39,13 @@ fun NotificationsScreen() {
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mm a")
+    val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mma")
 
     fun formatTimestampToSGT(timestamp: String): String {
         return try {
             val zonedDateTime = ZonedDateTime.parse(timestamp)
                 .withZoneSameInstant(ZoneId.of("Asia/Singapore"))
-            zonedDateTime.format(timeFormatter)
+            zonedDateTime.format(timeFormatter).uppercase()
         } catch (e: Exception) {
             "Unknown Time"
         }
@@ -159,7 +163,36 @@ fun NotificationsScreen() {
             }
     }
 
-    // UI
+    fun formatDate(date: String, time: String): String {
+        return try {
+            // Parse the date
+            val localDate = LocalDate.parse(date)
+            val formattedDate = localDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+
+            // Parse the time (if it's not "Unknown Time")
+            val formattedTime = if (time != "Unknown Time") {
+                val localTime = LocalTime.parse(time)
+                localTime.format(DateTimeFormatter.ofPattern("hh:mma")).uppercase() // 12-hour format with AM/PM
+            } else {
+                "Unknown Time"
+            }
+
+            "$formattedDate $formattedTime"
+        } catch (e: Exception) {
+            "Invalid Date/Time"
+        }
+    }
+
+
+    fun formatEventStatus(event: EventDetails?): String? {
+        return event?.let {
+            val formattedDate = formatDate(it.startDate, it.startTime)
+            "${it.title}\n$formattedDate"
+        }
+    }
+
+
+// UI
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = lazyListState,
@@ -169,9 +202,16 @@ fun NotificationsScreen() {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(notifications) { notification ->
+                val dynamicStatusMessage = if (notification == selectedNotification) {
+                    formatEventStatus(eventDetails) ?: notification.status
+                } else {
+                    notification.status
+                }
+
                 Column {
                     NotificationCard(
                         notification = notification,
+                        statusMessage = dynamicStatusMessage,
                         onAdd = { selectedNotification = notification },
                         onDiscard = {
                             notifications = notifications.map {
@@ -196,7 +236,7 @@ fun NotificationsScreen() {
             }
         }
 
-        // Display EventPopupDialog with fetched details (only if eventDetails is NOT null)
+        // Display EventPopupDialog with fetched details
         selectedNotification?.let { notification ->
             when {
                 eventDetails == null -> {
@@ -208,7 +248,7 @@ fun NotificationsScreen() {
                         eventDetails = eventDetails!!,
                         onSave = { savedEvent ->
                             notifications = notifications.map {
-                                if (it == notification) it.copy(status = "Event Added: ${savedEvent.startDate} ${savedEvent.startTime}")
+                                if (it == notification) it.copy(status = formatEventStatus(savedEvent))
                                 else it
                             }
                             selectedNotification = null
@@ -218,6 +258,6 @@ fun NotificationsScreen() {
                 }
             }
         }
-
     }
+
 }

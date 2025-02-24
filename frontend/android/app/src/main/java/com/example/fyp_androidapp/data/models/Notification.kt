@@ -6,6 +6,8 @@ data class Notification(
     val title: String,
     val content: String,
     val time: String,
-    val isImportant: Boolean = false,
-    var status: String? = null // Tracks additional status (e.g., "Event Discarded" or date)
+    val isImportant: Boolean,
+    var status: String? = null,  // Already tracking status
+    var isActionPerformed: Boolean = false  // New property to track state
 )
+
