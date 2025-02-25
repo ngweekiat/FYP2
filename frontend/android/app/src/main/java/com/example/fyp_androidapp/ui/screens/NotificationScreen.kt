@@ -203,9 +203,9 @@ fun NotificationsScreen() {
         ) {
             items(notifications) { notification ->
                 val dynamicStatusMessage = if (notification == selectedNotification) {
-                    formatEventStatus(eventDetails) ?: notification.status
+                    formatEventStatus(eventDetails) ?: notification.status_message
                 } else {
-                    notification.status
+                    notification.status_message
                 }
 
                 Column {
@@ -215,7 +215,7 @@ fun NotificationsScreen() {
                         onAdd = { selectedNotification = notification },
                         onDiscard = {
                             notifications = notifications.map {
-                                if (it == notification) it.copy(status = "Event Discarded") else it
+                                if (it == notification) it.copy(status_message = "Event Discarded") else it
                             }
                         }
                     )
@@ -248,7 +248,7 @@ fun NotificationsScreen() {
                         eventDetails = eventDetails!!,
                         onSave = { savedEvent ->
                             notifications = notifications.map {
-                                if (it == notification) it.copy(status = formatEventStatus(savedEvent))
+                                if (it == notification) it.copy(status_message = formatEventStatus(savedEvent))
                                 else it
                             }
                             selectedNotification = null
