@@ -8,6 +8,6 @@ data class Notification(
     val time: String,
     val isImportant: Boolean,
     var status: String? = null,  // Already tracking status
-    var isActionPerformed: Boolean = false  // New property to track state
+    var button_status: Int = 0  // New property to track button state
 )
 

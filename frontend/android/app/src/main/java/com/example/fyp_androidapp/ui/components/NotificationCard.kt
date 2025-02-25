@@ -96,7 +96,7 @@ fun NotificationCard(
                 }
             }
 
-            if (!notification.isActionPerformed && notification.isImportant) {
+            if (notification.button_status == 0 && notification.isImportant) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -104,7 +104,7 @@ fun NotificationCard(
                 ) {
                     Button(
                         onClick = {
-                            notification.isActionPerformed = true  // Update state at source
+                            notification.button_status = 1  // Update state at source
                             onAdd()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -115,7 +115,7 @@ fun NotificationCard(
                     }
                     OutlinedButton(
                         onClick = {
-                            notification.isActionPerformed = true  // Update state at source
+                            notification.button_status = 2  // Update state at source
                             onDiscard()
                         },
                         modifier = Modifier.weight(1f),
