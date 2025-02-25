@@ -66,18 +66,19 @@ fun NotificationCard(
                 )
             }
 
-            statusMessage?.let { status ->
+            // Display status message if button_status is not 0
+            if (notification.button_status != 0) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val statusBoxColor =
-                        if (status.contains("Event Discarded")) MaterialTheme.colorScheme.error
+                        if (statusMessage?.contains("Event Discarded") == true) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.primary
 
                     val statusTextColor =
-                        if (status.contains("Event Discarded")) MaterialTheme.colorScheme.error
+                        if (statusMessage?.contains("Event Discarded") == true) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.primary
 
                     Box(
@@ -89,38 +90,38 @@ fun NotificationCard(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = status,
+                        text = statusMessage ?: "Event Status Unknown",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                         color = statusTextColor
                     )
                 }
-            }
-
-            if (notification.button_status == 0 && notification.isImportant) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Button(
-                        onClick = {
-                            onAdd()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
+            } else {
+                // Show Add/Discard buttons only if button_status is 0
+                if (notification.isImportant) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Add", color = MaterialTheme.colorScheme.onPrimary)
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            notification.button_status = 2  // Update state at source
-                            onDiscard()
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Discard", color = MaterialTheme.colorScheme.primary)
+                        Button(
+                            onClick = {
+                                onAdd()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Add", color = MaterialTheme.colorScheme.onPrimary)
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                onDiscard()
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Discard", color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
             }

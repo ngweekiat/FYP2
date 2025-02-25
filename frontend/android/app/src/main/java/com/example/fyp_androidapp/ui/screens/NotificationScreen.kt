@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import com.example.fyp_androidapp.Constants
-
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 
 @Composable
@@ -51,6 +51,47 @@ fun NotificationsScreen() {
         }
     }
 
+    // Function to fetch event details from backend
+    var eventDetailsMap by remember { mutableStateOf(mapOf<String, EventDetails>()) }
+    fun fetchCalendarEvent(notificationId: String) {
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val request = Request.Builder()
+                    .url("${Constants.BASE_URL}/notifications/calendar_events/$notificationId")
+                    .get()
+                    .build()
+
+                val response = client.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string() ?: ""
+                    val json = JSONObject(responseBody).getJSONObject("event")
+
+                    withContext(Dispatchers.Main) {
+                        val newEventDetails = EventDetails(
+                            title = json.optString("title", "No Title"),
+                            description = json.optString("description", "No Description"),
+                            locationOrMeeting = json.optString("location", "Unknown Location"),
+                            allDay = json.optBoolean("allDay", false),
+                            startDate = json.optString("start_date", "Unknown Date"),
+                            startTime = json.optString("start_time", "Unknown Time"),
+                            endDate = json.optString("end_date", "Unknown Date"),
+                            endTime = json.optString("end_time", "Unknown Time"),
+                            buttonStatus = json.optInt("button_status", 0)
+                        )
+
+                        eventDetailsMap = eventDetailsMap + (notificationId to newEventDetails)
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    eventDetailsMap = eventDetailsMap - notificationId // Remove failed fetch
+                }
+            }
+        }
+    }
+
     fun fetchNotifications(limit: Int = 20) {
         if (isLoading) return
 
@@ -72,16 +113,16 @@ fun NotificationsScreen() {
 
                     for (i in 0 until notificationsArray.length()) {
                         val item = notificationsArray.getJSONObject(i)
-                        newNotifications.add(
-                            Notification(
-                                id = item.optString("id", ""),
-                                sender = item.optString("appName", "Unknown"),
-                                title = item.optString("title", "No Title"),
-                                content = item.optString("bigText", item.optString("text", "No Content")),
-                                time = formatTimestampToSGT(item.optString("timestamp", "Unknown Time")),
-                                isImportant = item.optInt("notification_importance", 0) == 1
-                            )
+                        val notification = Notification(
+                            id = item.optString("id", ""),
+                            sender = item.optString("appName", "Unknown"),
+                            title = item.optString("title", "No Title"),
+                            content = item.optString("bigText", item.optString("text", "No Content")),
+                            time = formatTimestampToSGT(item.optString("timestamp", "Unknown Time")),
+                            isImportant = item.optInt("notification_importance", 0) == 1,
+                            button_status = item.optInt("button_status", 0)
                         )
+                        newNotifications.add(notification)
                     }
 
                     val lastVisibleId = json.optString("lastVisible", null)
@@ -89,6 +130,11 @@ fun NotificationsScreen() {
                     withContext(Dispatchers.Main) {
                         notifications = notifications + newNotifications
                         lastVisible = lastVisibleId
+
+                        // Fetch event details only for important notifications
+                        newNotifications.filter { it.isImportant }.forEach { notification ->
+                            fetchCalendarEvent(notification.id)
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -99,42 +145,6 @@ fun NotificationsScreen() {
         }
     }
 
-    // Function to fetch event details from backend
-    fun fetchCalendarEvent(notificationId: String) {
-        coroutineScope.launch(Dispatchers.IO) {
-            try {
-                val client = OkHttpClient()
-                val request = Request.Builder()
-                    .url("${Constants.BASE_URL}/notifications/calendar_events/$notificationId")
-                    .get()
-                    .build()
-
-                val response = client.newCall(request).execute()
-
-                if (response.isSuccessful) {
-                    val responseBody = response.body?.string() ?: ""
-                    val json = JSONObject(responseBody).getJSONObject("event")
-
-                    withContext(Dispatchers.Main) {
-                        eventDetails = EventDetails(
-                            title = json.optString("title", "No Title"),
-                            description = json.optString("description", "No Description"),
-                            locationOrMeeting = json.optString("location", "Unknown Location"),
-                            allDay = json.optBoolean("allDay", false),
-                            startDate = json.optString("start_date", "Unknown Date"),
-                            startTime = json.optString("start_time", "Unknown Time"),
-                            endDate = json.optString("end_date", "Unknown Date"),
-                            endTime = json.optString("end_time", "Unknown Time")
-                        )
-                    }
-                } else {
-                    withContext(Dispatchers.Main) { eventDetails = null }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) { eventDetails = null }
-            }
-        }
-    }
 
     // Load initial notifications
     LaunchedEffect(Unit) {
@@ -186,13 +196,131 @@ fun NotificationsScreen() {
 
     fun formatEventStatus(event: EventDetails?): String? {
         return event?.let {
-            val formattedDate = formatDate(it.startDate, it.startTime)
-            "${it.title}\n$formattedDate"
+            if (it.buttonStatus == 2) {
+                "Event Discarded"
+            } else {
+                val formattedDate = formatDate(it.startDate, it.startTime)
+                "${it.title}\n$formattedDate"
+            }
         }
     }
 
 
-// UI
+    fun updateEvent(eventId: String, updatedEvent: EventDetails, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val jsonBody = JSONObject().apply {
+                    put("title", updatedEvent.title)
+                    put("description", updatedEvent.description)
+                    put("location", updatedEvent.locationOrMeeting)
+                    put("allDay", updatedEvent.allDay)
+                    put("start_date", updatedEvent.startDate)
+                    put("start_time", updatedEvent.startTime)
+                    put("end_date", updatedEvent.endDate)
+                    put("end_time", updatedEvent.endTime)
+                }.toString()
+
+                val request = Request.Builder()
+                    .url("${Constants.BASE_URL}/notifications/calendar_events/$eventId")
+                    .patch(okhttp3.RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody))
+                    .build()
+
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    withContext(Dispatchers.Main) { onSuccess() }
+                } else {
+                    throw Exception("Failed to update event")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onError(e) }
+            }
+        }
+    }
+
+    fun discardEvent(eventId: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val jsonBody = JSONObject().apply {
+                    put("button_status", 2)
+                }.toString()
+
+                val request = Request.Builder()
+                    .url("${Constants.BASE_URL}/notifications/calendar_events/$eventId")
+                    .patch(okhttp3.RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody))
+                    .build()
+
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    withContext(Dispatchers.Main) { onSuccess() }
+                } else {
+                    throw Exception("Failed to discard event")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onError(e) }
+            }
+        }
+    }
+
+    fun updateEvent(notificationId: String, updatedEvent: EventDetails) {
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val jsonBody = JSONObject().apply {
+                    put("title", updatedEvent.title)
+                    put("description", updatedEvent.description)
+                    put("location", updatedEvent.locationOrMeeting)
+                    put("allDay", updatedEvent.allDay)
+                    put("start_date", updatedEvent.startDate)
+                    put("start_time", updatedEvent.startTime)
+                    put("end_date", updatedEvent.endDate)
+                    put("end_time", updatedEvent.endTime)
+                    put("button_status", 1) // Mark as saved
+                }
+
+                val request = Request.Builder()
+                    .url("${Constants.BASE_URL}/notifications/calendar_events/$notificationId")
+                    .patch(okhttp3.RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody.toString()))
+                    .build()
+
+                val response = client.newCall(request).execute()
+
+                if (!response.isSuccessful) {
+                    throw Exception("Failed to update event: ${response.message}")
+                }
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
+
+    fun discardEvent(notificationId: String) {
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val jsonBody = JSONObject().apply {
+                    put("button_status", 2) // Mark as discarded
+                }
+
+                val request = Request.Builder()
+                    .url("${Constants.BASE_URL}/notifications/calendar_events/$notificationId")
+                    .patch(okhttp3.RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody.toString()))
+                    .build()
+
+                val response = client.newCall(request).execute()
+
+                if (!response.isSuccessful) {
+                    throw Exception("Failed to discard event: ${response.message}")
+                }
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
+
+
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = lazyListState,
@@ -202,11 +330,8 @@ fun NotificationsScreen() {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(notifications) { notification ->
-                val dynamicStatusMessage = if (notification == selectedNotification) {
-                    formatEventStatus(eventDetails) ?: notification.status_message
-                } else {
-                    notification.status_message
-                }
+                val eventDetails = eventDetailsMap[notification.id]
+                val dynamicStatusMessage = eventDetails?.let { formatEventStatus(it) } ?: notification.status_message
 
                 Column {
                     NotificationCard(
@@ -214,9 +339,16 @@ fun NotificationsScreen() {
                         statusMessage = dynamicStatusMessage,
                         onAdd = { selectedNotification = notification },
                         onDiscard = {
-                            notifications = notifications.map {
-                                if (it == notification) it.copy(status_message = "Event Discarded") else it
-                            }
+                            discardEvent(notification.id,
+                                onSuccess = {
+                                    notifications = notifications.map {
+                                        if (it.id == notification.id) it.copy(status_message = "Event Discarded", button_status = 2)
+                                        else it
+                                    }
+                                    eventDetailsMap = eventDetailsMap - notification.id // Remove discarded event
+                                },
+                                onError = { e -> println("Error discarding event: ${e.message}") }
+                            )
                         }
                     )
                     Divider(
@@ -227,6 +359,7 @@ fun NotificationsScreen() {
                 }
             }
 
+
             item {
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.padding(16.dp))
@@ -235,33 +368,26 @@ fun NotificationsScreen() {
                 }
             }
         }
-
-        // Display EventPopupDialog with fetched details
+        
+        // Show the event popup dialog immediately when a notification is selected
         selectedNotification?.let { notification ->
-            when {
-                eventDetails == null -> {
-                    // Show a loading state if event details are being fetched
-                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-                }
-                else -> {
-                    EventPopupDialog(
-                        eventDetails = eventDetails!!,
-                        onSave = { savedEvent ->
-                            notifications = notifications.map {
-                                if (it == notification) it.copy(
-                                    status_message = formatEventStatus(savedEvent),
-                                    button_status = 1  // Update button_status only after event is saved
-                                )
-                                else it
-                            }
-                            selectedNotification = null
-                        },
-                        onDismiss = { selectedNotification = null }
-                    )
-
-                }
-            }
+            EventPopupDialog(
+                eventDetails = eventDetails ?: EventDetails(), // Provide a default empty event
+                onSave = { savedEvent ->
+                    updateEvent(notification.id, savedEvent) // API call to update event
+                    notifications = notifications.map {
+                        if (it == notification) it.copy(
+                            status_message = formatEventStatus(savedEvent),
+                            button_status = 1
+                        )
+                        else it
+                    }
+                    selectedNotification = null
+                },
+                onDismiss = { selectedNotification = null }
+            )
         }
+
     }
 
 }
