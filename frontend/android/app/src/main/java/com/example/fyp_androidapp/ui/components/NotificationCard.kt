@@ -104,7 +104,6 @@ fun NotificationCard(
                 ) {
                     Button(
                         onClick = {
-                            notification.button_status = 1  // Update state at source
                             onAdd()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),

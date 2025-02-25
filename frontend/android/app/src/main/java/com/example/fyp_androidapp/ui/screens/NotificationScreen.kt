@@ -248,13 +248,17 @@ fun NotificationsScreen() {
                         eventDetails = eventDetails!!,
                         onSave = { savedEvent ->
                             notifications = notifications.map {
-                                if (it == notification) it.copy(status_message = formatEventStatus(savedEvent))
+                                if (it == notification) it.copy(
+                                    status_message = formatEventStatus(savedEvent),
+                                    button_status = 1  // Update button_status only after event is saved
+                                )
                                 else it
                             }
                             selectedNotification = null
                         },
                         onDismiss = { selectedNotification = null }
                     )
+
                 }
             }
         }
