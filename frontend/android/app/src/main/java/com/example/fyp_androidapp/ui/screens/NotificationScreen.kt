@@ -66,31 +66,37 @@ fun NotificationsScreen() {
 
                 if (response.isSuccessful) {
                     val responseBody = response.body?.string() ?: ""
-                    val json = JSONObject(responseBody).getJSONObject("event")
+                    val json = JSONObject(responseBody).optJSONObject("event") ?: return@launch
+
+                    val newEventDetails = EventDetails(
+                        title = json.optString("title", "No Title"),
+                        description = json.optString("description", "No Description"),
+                        locationOrMeeting = json.optString("location", "Unknown Location"),
+                        allDay = json.optBoolean("allDay", false),
+                        startDate = json.optString("start_date", "Unknown Date"),
+                        startTime = json.optString("start_time", "Unknown Time"),
+                        endDate = json.optString("end_date", "Unknown Date"),
+                        endTime = json.optString("end_time", "Unknown Time"),
+                        buttonStatus = json.optInt("button_status", 0)
+                    )
 
                     withContext(Dispatchers.Main) {
-                        val newEventDetails = EventDetails(
-                            title = json.optString("title", "No Title"),
-                            description = json.optString("description", "No Description"),
-                            locationOrMeeting = json.optString("location", "Unknown Location"),
-                            allDay = json.optBoolean("allDay", false),
-                            startDate = json.optString("start_date", "Unknown Date"),
-                            startTime = json.optString("start_time", "Unknown Time"),
-                            endDate = json.optString("end_date", "Unknown Date"),
-                            endTime = json.optString("end_time", "Unknown Time"),
-                            buttonStatus = json.optInt("button_status", 0)
-                        )
-
                         eventDetailsMap = eventDetailsMap + (notificationId to newEventDetails)
+                        eventDetails = newEventDetails // **Update eventDetails to trigger UI re-render**
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        eventDetails = null
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    eventDetailsMap = eventDetailsMap - notificationId // Remove failed fetch
+                    eventDetails = null
                 }
             }
         }
     }
+
 
     fun fetchNotifications(limit: Int = 20) {
         if (isLoading) return
@@ -368,7 +374,7 @@ fun NotificationsScreen() {
                 }
             }
         }
-        
+
         // Show the event popup dialog immediately when a notification is selected
         selectedNotification?.let { notification ->
             EventPopupDialog(
