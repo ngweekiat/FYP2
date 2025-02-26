@@ -239,6 +239,36 @@ router.get('/calendar_events/:id', async (req, res) => {
 });
 
 
+/**
+ * PATCH: Update an existing calendar event by ID.
+ */
+router.patch('/calendar_events/:id', async (req, res) => {
+    const eventId = req.params.id;
+    const updatedEventData = req.body; // Data to update
+
+    try {
+        // Find the existing event document in Firestore
+        const snapshot = await db.collection('calendar_events').where('id', '==', eventId).get();
+
+        if (snapshot.empty) {
+            return res.status(404).json({ message: 'Calendar event not found', id: eventId });
+        }
+
+        // Get the first matching document (assuming ID is unique)
+        const doc = snapshot.docs[0];
+
+        // Update the event document with the new data
+        await db.collection('calendar_events').doc(doc.id).update(updatedEventData);
+
+        res.status(200).json({
+            message: 'Calendar event updated successfully',
+            updatedEvent: updatedEventData,
+        });
+    } catch (error) {
+        console.error('Error updating calendar event:', error);
+        res.status(500).json({ message: 'Failed to update calendar event', error: error.message });
+    }
+});
 
 
 
