@@ -58,7 +58,7 @@ fun CalendarViewer(
                 val currentDate = firstDayOfMonth.plus(day - 1, DateTimeUnit.DAY)
 
                 val backgroundColor = when {
-                    currentDate == today -> Color.Blue // Highlight today's date
+                    currentDate == today -> Color(0xFFADD8E6) // Highlight today's date
                     selectedDate == currentDate -> Color.Gray // Highlight selected date
                     else -> Color.Transparent
                 }
