@@ -83,6 +83,9 @@ dependencies {
     // Kotlinx.datetime dependency
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0") // Replace with the latest version
 
+    // Added google Oauth dependency
+    implementation ("com.google.android.gms:play-services-auth:20.7.0")
+
 
     // Unit Testing
     testImplementation("junit:junit:4.13.2")
