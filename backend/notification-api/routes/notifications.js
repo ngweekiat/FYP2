@@ -238,6 +238,37 @@ router.get('/calendar_events/:id', async (req, res) => {
     }
 });
 
+/**
+ * GET: Fetch events for the specific year and month
+ */
+router.get('/calendar_events', async (req, res) => {
+    const { year, month } = req.query;
+
+    if (!year || !month) {
+        return res.status(400).json({ message: 'Missing required parameters: year and month' });
+    }
+
+    try {
+        const snapshot = await db.collection('calendar_events')
+            .where('start_date', '>=', `${year}-${month.padStart(2, '0')}-01`)
+            .where('start_date', '<=', `${year}-${month.padStart(2, '0')}-31`)
+            .where('button_status', '==', 1) // ✅ Only fetch saved events
+            .get();
+
+        if (snapshot.empty) {
+            return res.status(404).json({ message: 'No saved calendar events found for the selected month' });
+        }
+
+        const events = snapshot.docs.map(doc => doc.data());
+
+        res.status(200).json(events);
+    } catch (error) {
+        console.error('Error retrieving calendar events:', error);
+        res.status(500).json({ message: 'Failed to retrieve calendar events', error: error.message });
+    }
+});
+
+
 
 /**
  * PATCH: Update an existing calendar event by ID.

@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.material3.Text // Import added here
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +26,9 @@ fun CalendarViewer(
     val firstDayOfMonth = LocalDate(year, month, 1)
     val daysInMonth = getDaysInMonth(year, month)
     val startDayOfWeek = firstDayOfMonth.dayOfWeek.ordinal
+
+    // Get the current date
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 
     Column {
         Row(
@@ -53,18 +56,23 @@ fun CalendarViewer(
 
             itemsIndexed(List(daysInMonth) { it + 1 }) { _, day ->
                 val currentDate = firstDayOfMonth.plus(day - 1, DateTimeUnit.DAY)
+
+                val backgroundColor = when {
+                    currentDate == today -> Color.Blue // Highlight today's date
+                    selectedDate == currentDate -> Color.Gray // Highlight selected date
+                    else -> Color.Transparent
+                }
+
                 Box(
                     modifier = Modifier
                         .size(50.dp)
                         .padding(4.dp)
-                        .background(
-                            if (selectedDate == currentDate) Color.Gray else Color.Transparent
-                        )
+                        .background(backgroundColor)
                         .clickable { onDateSelected(currentDate) },
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = day.toString())
+                        Text(text = day.toString(), color = Color.White.takeIf { currentDate == today } ?: Color.Black)
                         if (events.containsKey(currentDate)) {
                             Text(
                                 text = "\u2022",

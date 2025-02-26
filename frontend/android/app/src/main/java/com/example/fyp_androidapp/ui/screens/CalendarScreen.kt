@@ -13,27 +13,68 @@ import com.example.fyp_androidapp.ui.components.CalendarViewer
 import com.example.fyp_androidapp.ui.components.EventListViewer
 import com.example.fyp_androidapp.ui.components.EventPopupDialog
 import com.example.fyp_androidapp.data.models.EventDetails
+import com.example.fyp_androidapp.Constants
+import kotlinx.coroutines.*
 import kotlinx.datetime.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONArray
+import org.json.JSONObject
 
 @Composable
 fun CalendarScreen() {
-    var year by remember { mutableStateOf(2025) }
-    var month by remember { mutableStateOf(Month.JANUARY) }
+    val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    var year by remember { mutableStateOf(currentDate.year) }
+    var month by remember { mutableStateOf(currentDate.month) }
 
     var isMonthDropdownExpanded by remember { mutableStateOf(false) }
     var isYearDropdownExpanded by remember { mutableStateOf(false) }
-
     val years = (2000..2030).toList()
-    val events = remember {
-        mapOf(
-            LocalDate(2025, Month.JANUARY, 3) to listOf("10:00 AM - Meeting with Team", "1:00 PM - Lunch with Sarah"),
-            LocalDate(2025, Month.JANUARY, 5) to listOf("3:00 PM - Doctor's Appointment"),
-        )
-    }
+
+    val coroutineScope = rememberCoroutineScope()
+    var events by remember { mutableStateOf<Map<LocalDate, List<String>>>(emptyMap()) }
 
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var isPopupVisible by remember { mutableStateOf(false) }
     var selectedEventDetails by remember { mutableStateOf(EventDetails()) }
+
+    fun fetchEventsForMonth(selectedYear: Int, selectedMonth: Month) {
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val url = "${Constants.BASE_URL}/notifications/calendar_events?year=$selectedYear&month=${selectedMonth.ordinal + 1}"
+                val request = Request.Builder().url(url).get().build()
+                val response = client.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string() ?: return@launch
+                    val jsonArray = JSONArray(responseBody)
+
+                    val fetchedEvents = mutableMapOf<LocalDate, List<String>>()
+
+                    for (i in 0 until jsonArray.length()) {
+                        val jsonEvent = jsonArray.getJSONObject(i)
+                        val eventDate = LocalDate.parse(jsonEvent.getString("start_date"))
+                        val eventTime = jsonEvent.getString("start_time")
+                        val eventTitle = jsonEvent.getString("title")
+
+                        fetchedEvents[eventDate] = fetchedEvents.getOrDefault(eventDate, emptyList()) + "$eventTime - $eventTitle"
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        events = fetchedEvents
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // Fetch events when the month changes
+    LaunchedEffect(year, month) {
+        fetchEventsForMonth(year, month)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -115,10 +156,9 @@ fun CalendarScreen() {
             )
         }
 
-        // Floating Action Button
         FloatingActionButton(
             onClick = {
-                selectedEventDetails = EventDetails() // Reset event details for new event
+                selectedEventDetails = EventDetails()
                 isPopupVisible = true
             },
             modifier = Modifier
@@ -126,7 +166,7 @@ fun CalendarScreen() {
                 .padding(16.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.Add, // Requires androidx.compose.material.icons.*
+                imageVector = Icons.Default.Add,
                 contentDescription = "Add Event"
             )
         }
@@ -136,7 +176,6 @@ fun CalendarScreen() {
         EventPopupDialog(
             eventDetails = selectedEventDetails,
             onSave = {
-                // Handle saving event details here
                 isPopupVisible = false
             },
             onDismiss = { isPopupVisible = false }
