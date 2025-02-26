@@ -11,6 +11,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.fyp_androidapp.data.models.EventDetails
 import kotlinx.datetime.LocalDate
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 
 @Composable
 fun EventListViewer(
@@ -20,12 +22,12 @@ fun EventListViewer(
 ) {
     Box(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize() // Ensure the box takes full screen height
             .padding(16.dp)
     ) {
         if (selectedDate != null) {
             val selectedEvents = events[selectedDate]
-            if (selectedEvents != null && selectedEvents.isNotEmpty()) {
+            if (!selectedEvents.isNullOrEmpty()) {
                 Column {
                     Text(
                         text = "Events on ${selectedDate.toString()}:",
@@ -33,38 +35,40 @@ fun EventListViewer(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    selectedEvents.forEach { event ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onEventSelected(EventDetails(title = "Event", description = event))
-                                }
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Assuming events are stored as "Time - Event Description"
-                            val parts = event.split(" - ", limit = 2)
-                            val time = parts.getOrNull(0) ?: ""
-                            val description = parts.getOrNull(1) ?: event
 
-                            // Event Description
-                            Text(
-                                text = description,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f)
-                            )
+                    LazyColumn( // Use LazyColumn for scrolling
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(selectedEvents) { event ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onEventSelected(EventDetails(title = "Event", description = event))
+                                    }
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val parts = event.split(" - ", limit = 2)
+                                val time = parts.getOrNull(0) ?: ""
+                                val description = parts.getOrNull(1) ?: event
 
-                            // Time
-                            Text(
-                                text = time,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.secondary,
-                                textAlign = TextAlign.End,
-                                modifier = Modifier.padding(start = 16.dp)
-                            )
+                                Text(
+                                    text = description,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                Text(
+                                    text = time,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    textAlign = TextAlign.End,
+                                    modifier = Modifier.padding(start = 16.dp)
+                                )
+                            }
                         }
                     }
                 }
