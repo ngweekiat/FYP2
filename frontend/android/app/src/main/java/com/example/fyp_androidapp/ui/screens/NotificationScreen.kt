@@ -82,8 +82,16 @@ fun NotificationsScreen() {
 
                     withContext(Dispatchers.Main) {
                         eventDetailsMap = eventDetailsMap + (notificationId to newEventDetails)
-                        eventDetails = newEventDetails // **Update eventDetails to trigger UI re-render**
+
+                        // Update notifications list with correct button_status
+                        notifications = notifications.map {
+                            if (it.id == notificationId) it.copy(button_status = newEventDetails.buttonStatus)
+                            else it
+                        }
+
+                        eventDetails = newEventDetails // Trigger UI re-render
                     }
+
                 } else {
                     withContext(Dispatchers.Main) {
                         eventDetails = null
