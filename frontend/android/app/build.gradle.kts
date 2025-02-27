@@ -86,6 +86,14 @@ dependencies {
     // Added google Oauth dependency
     implementation ("com.google.android.gms:play-services-auth:20.7.0")
 
+    // Add google play services dependencies
+    implementation ("com.google.android.gms:play-services-auth:20.7.0") // Latest Google Sign-In SDK
+
+    // Add firebase dependencies
+    implementation ("com.google.firebase:firebase-auth-ktx:22.1.1")  // Firebase Authentication
+    implementation ("com.google.firebase:firebase-auth:22.3.0")
+
+
 
     // Unit Testing
     testImplementation("junit:junit:4.13.2")
