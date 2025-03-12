@@ -21,6 +21,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 
@@ -29,64 +30,61 @@ import com.google.firebase.auth.GoogleAuthProvider
 fun SettingsScreen() {
     val context = LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
-    var userEmail by remember { mutableStateOf<String?>(null) }
-    var userName by remember { mutableStateOf<String?>(null) }
+    var userEmail by remember { mutableStateOf<String?>(auth.currentUser?.email) }
+    var userName by remember { mutableStateOf<String?>(auth.currentUser?.displayName) }
 
-    // Google Sign-In Client
     val googleSignInClient = remember {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com") // Replace with Firebase Web Client ID
+            .requestIdToken("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com")
             .requestEmail()
+            .requestScopes(Scope("https://www.googleapis.com/auth/calendar.events")) // Request Calendar Access
             .build()
         GoogleSignIn.getClient(context, gso)
     }
 
-    val signInLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) { result ->
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)!!
-                Log.d("GoogleSignIn", "firebaseAuthWithGoogle: ${account.id}")
-
-                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-                auth.signInWithCredential(credential)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            val user = auth.currentUser
-                            userEmail = user?.email
-                            userName = user?.displayName
-                        } else {
-                            Log.w("GoogleSignIn", "signInWithCredential:failure", task.exception)
-                        }
+    val signInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)!!
+            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+            auth.signInWithCredential(credential)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val user = auth.currentUser
+                        userEmail = user?.email
+                        userName = user?.displayName
                     }
-            } catch (e: ApiException) {
-                Log.w("GoogleSignIn", "Google sign-in failed", e)
-            }
+                }
+        } catch (e: ApiException) {
+            Log.w("GoogleSignIn", "Google sign-in failed", e)
         }
+    }
 
-    Scaffold(
-        topBar = { CustomTopBar(title = "Manage Accounts") }
-    ) { paddingValues ->
+    LaunchedEffect(Unit) {
+        val user = auth.currentUser
+        if (user != null) {
+            userEmail = user.email
+            userName = user.displayName
+        }
+    }
+
+    Scaffold(topBar = { CustomTopBar(title = "Manage Accounts") }) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            Text(
-                text = "Accounts",
-                fontSize = 20.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Text(text = "Accounts", fontSize = 20.sp, modifier = Modifier.padding(bottom = 8.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     if (userEmail != null) {
                         AccountItem(
                             accountType = "Google Account",
@@ -99,7 +97,11 @@ fun SettingsScreen() {
                                 }
                             }
                         )
-                        Divider(color = Color.Black, thickness = 1.dp, modifier = Modifier.padding(start = 72.dp))
+                        Divider(
+                            color = Color.Black,
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(start = 72.dp)
+                        )
                     }
                 }
             }
@@ -132,6 +134,7 @@ fun SettingsScreen() {
         }
     }
 }
+
 
 @Composable
 fun CustomTopBar(title: String) {
