@@ -1,157 +1,95 @@
-
 package com.example.fyp_androidapp.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import android.app.Activity
+import android.content.Intent
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.auth.api.identity.SignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
-    Scaffold(
-        topBar = { CustomTopBar(title = "Manage Accounts") }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Accounts",
-                fontSize = 20.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+    val context = LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
+    var userEmail by remember { mutableStateOf<String?>(null) }
+    var userName by remember { mutableStateOf<String?>(null) }
 
-            // Singular card for all accounts
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                elevation = CardDefaults.cardElevation(4.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Google Calendar Account
-                    AccountItem(
-                        accountType = "Google Calendar",
-                        accountEmail = "ngweekiat520@gmail.com",
-                        onUnlinkClick = { /* Handle Google unlink logic */ }
-                    )
+    // Google Sign-In Client
+    val googleSignInClient = remember {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com") // Replace with your Firebase web client ID
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
 
-                    // Divider for Google Calendar
-                    Divider(
-                        color = Color.Black,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(start = 72.dp) // Align with account text start
-                    )
+    // Activity Result Launcher for Sign-In Intent
+    val signInLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) { result ->
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)!!
+                Log.d("GoogleSignIn", "firebaseAuthWithGoogle: ${account.id}")
 
-                    // Outlook Calendar Account
-                    AccountItem(
-                        accountType = "Outlook Calendar",
-                        accountEmail = "ngwe0105@e.ntu.edu.sg",
-                        onUnlinkClick = { /* Handle Outlook unlink logic */ }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = { /* Handle link account logic */ },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Link Account")
+                // Authenticate with Firebase
+                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+                auth.signInWithCredential(credential)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val user = auth.currentUser
+                            userEmail = user?.email
+                            userName = user?.displayName
+                        } else {
+                            Log.w("GoogleSignIn", "signInWithCredential:failure", task.exception)
+                        }
+                    }
+            } catch (e: ApiException) {
+                Log.w("GoogleSignIn", "Google sign-in failed", e)
             }
         }
-    }
-}
 
-@Composable
-fun CustomTopBar(title: String) {
-    Row(
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
-            .padding(vertical = 12.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 18.sp
-        )
-    }
-}
-
-@Composable
-fun AccountItem(accountType: String, accountEmail: String, onUnlinkClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        // Placeholder for the logo
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(Color.Gray, RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "L", // Replace with an Image or Icon when available
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        if (userEmail == null) {
+            Button(onClick = { signInLauncher.launch(googleSignInClient.signInIntent) }) {
+                Text(text = "Sign in with Google")
+            }
+        } else {
+            Text(text = "Welcome, $userName", style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "Email: $userEmail", style = MaterialTheme.typography.bodyMedium)
 
-        Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = accountType,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-            Text(
-                text = accountEmail,
-                fontSize = 14.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = Color.Gray,
-                        shape = RoundedCornerShape(4.dp)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 8.dp) // Custom padding inside the button
-                    .clickable { onUnlinkClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Unlink Calendar",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal
-                )
+            Button(onClick = {
+                auth.signOut()
+                googleSignInClient.signOut().addOnCompleteListener {
+                    userEmail = null
+                    userName = null
+                }
+            }) {
+                Text(text = "Sign Out")
             }
         }
     }
