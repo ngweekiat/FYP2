@@ -41,9 +41,7 @@ fun SettingsScreen() {
     val context = LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
 
-    var userEmail by remember { mutableStateOf<String?>(auth.currentUser?.email) }
-    var userName by remember { mutableStateOf<String?>(auth.currentUser?.displayName) }
-    var userPhotoUrl by remember { mutableStateOf<String?>(auth.currentUser?.photoUrl?.toString()) }
+    var accounts by remember { mutableStateOf(auth.currentUser?.let { listOf(it) } ?: emptyList()) }
 
     val googleSignInClient = remember {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -66,13 +64,12 @@ fun SettingsScreen() {
             auth.signInWithCredential(credential).addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val user = auth.currentUser
-                    userEmail = user?.email
-                    userName = user?.displayName
-                    userPhotoUrl = user?.photoUrl?.toString()
+                    if (user != null) {
+                        accounts = accounts + user // Add new user to the list
 
-                    val authCode = account.serverAuthCode
-
-                    sendTokenToBackend(user!!.uid, userEmail, userName, account.idToken!!, authCode)
+                        val authCode = account.serverAuthCode
+                        sendTokenToBackend(user.uid, user.email, user.displayName, account.idToken, authCode)
+                    }
                 }
             }
         } catch (e: ApiException) {
@@ -81,11 +78,9 @@ fun SettingsScreen() {
     }
 
     LaunchedEffect(Unit) {
-        val user = auth.currentUser
-        if (user != null) {
-            userEmail = user.email
-            userName = user.displayName
-            userPhotoUrl = user.photoUrl?.toString()
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            accounts = listOf(currentUser)
         }
     }
 
@@ -104,58 +99,43 @@ fun SettingsScreen() {
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    if (userEmail != null) {
+                    accounts.forEachIndexed { index, user ->
                         AccountItem(
                             accountType = "Google Account",
-                            accountEmail = userEmail!!,
-                            userPhotoUrl = userPhotoUrl,
+                            accountEmail = user.email ?: "Unknown Email",
+                            userPhotoUrl = user.photoUrl?.toString(),
                             onUnlinkClick = {
                                 auth.signOut()
                                 googleSignInClient.signOut().addOnCompleteListener {
-                                    userEmail = null
-                                    userName = null
-                                    userPhotoUrl = null
+                                    accounts = accounts.toMutableList().apply { removeAt(index) }
                                 }
                             }
                         )
-                        Divider(
-                            color = Color.Black,
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(start = 72.dp)
-                        )
+                        if (index != accounts.lastIndex) {
+                            Divider(
+                                color = Color.Black,
+                                thickness = 1.dp,
+                                modifier = Modifier.padding(start = 72.dp)
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (userEmail == null) {
-                Button(
-                    onClick = { signInLauncher.launch(googleSignInClient.signInIntent) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Sign in with Google")
-                }
-            } else {
-                Button(
-                    onClick = {
-                        auth.signOut()
-                        googleSignInClient.signOut().addOnCompleteListener {
-                            userEmail = null
-                            userName = null
-                            userPhotoUrl = null
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Sign Out")
-                }
+            // "Add Account" Button
+            Button(
+                onClick = { signInLauncher.launch(googleSignInClient.signInIntent) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Add Account")
             }
         }
     }
 }
+
 
 
 
