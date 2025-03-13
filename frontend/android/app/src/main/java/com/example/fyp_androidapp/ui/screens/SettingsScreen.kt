@@ -130,7 +130,7 @@ fun SettingsScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Add Account")
+                Text("Link Account")
             }
         }
     }

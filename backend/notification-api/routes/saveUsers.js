@@ -1,14 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { google } = require('googleapis');
 const db = require('../config/db'); // Firebase Firestore instance
-
-// Set up OAuth2 Client
-const oAuth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-);
 
 /**
  * Validate the user payload.
@@ -35,22 +27,16 @@ router.post('/save-user', async (req, res) => {
         });
     }
 
-    const { uid, email, displayName = "", authCode } = req.body;
+    const { uid, email, displayName = "" } = req.body;
 
     try {
-        // Exchange authCode for access & refresh tokens
-        const { tokens } = await oAuth2Client.getToken(authCode);
-
-        // Store tokens in Firestore
+        // Store user details in Firestore (no need to handle token here)
         const userRef = db.collection('users').doc(uid);
         await userRef.set(
             {
                 uid,
                 email,
                 displayName: displayName || "Unknown",
-                accessToken: tokens.access_token,
-                refreshToken: tokens.refresh_token, // ✅ Store refresh token
-                tokenExpiry: Date.now() + (tokens.expiry_date || 3600 * 1000), // Store expiry
                 lastLogin: new Date().toISOString(),
             },
             { merge: true }
@@ -59,14 +45,12 @@ router.post('/save-user', async (req, res) => {
         return res.status(201).json({
             message: 'User saved successfully',
             uid,
-            accessToken: tokens.access_token
         });
     } catch (error) {
         console.error('Error saving user:', error.message);
         return res.status(500).json({ message: 'Failed to save user', error: error.message });
     }
 });
-
 
 /**
  * GET: Retrieve user details by UID.

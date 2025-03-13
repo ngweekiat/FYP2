@@ -385,22 +385,33 @@ fun NotificationsScreen() {
 
         // Show the event popup dialog immediately when a notification is selected
         selectedNotification?.let { notification ->
+            val currentEventDetails = eventDetailsMap[notification.id] // Get event details from the map
+
             EventPopupDialog(
-                eventDetails = eventDetails ?: EventDetails(), // Provide a default empty event
+                eventDetails = currentEventDetails ?: EventDetails(), // If no event details are found, use a default EventDetails
                 onSave = { savedEvent ->
-                    updateEvent(notification.id, savedEvent) // API call to update event
+                    // Update the event details in the eventDetailsMap
+                    eventDetailsMap = eventDetailsMap.toMutableMap().apply {
+                        put(notification.id, savedEvent)  // Update the event with new details
+                    }
+
+                    // Update the notifications list with the updated event status message and button status
                     notifications = notifications.map {
-                        if (it == notification) it.copy(
-                            status_message = formatEventStatus(savedEvent),
-                            button_status = 1
+                        if (it.id == notification.id) it.copy(
+                            status_message = formatEventStatus(savedEvent),  // Format new event status message
+                            button_status = 1  // Mark as saved
                         )
                         else it
                     }
+
+                    // Close the selected notification and the event editing dialog
                     selectedNotification = null
-                },
+                }
+,
                 onDismiss = { selectedNotification = null }
             )
         }
+
 
     }
 
