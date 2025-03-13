@@ -63,13 +63,17 @@ fun SettingsScreen() {
             auth.signInWithCredential(credential).addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val user = auth.currentUser
-                    userEmail = user?.email
-                    userName = user?.displayName
+                    val email = user?.email
+                    val displayName = user?.displayName
 
-                    // Send token to backend
-                    sendTokenToBackend(user!!.uid, account.idToken!!)
+                    userEmail = email
+                    userName = displayName
+
+                    // Send token to backend with all required parameters
+                    sendTokenToBackend(user!!.uid, email, displayName, account.idToken!!)
                 }
             }
+
         } catch (e: ApiException) {
             Log.w("GoogleSignIn", "Google sign-in failed", e)
         }
@@ -218,19 +222,37 @@ fun AccountItem(accountType: String, accountEmail: String, onUnlinkClick: () -> 
 }
 
 
-fun sendTokenToBackend(userId: String, idToken: String) {
+fun sendTokenToBackend(userId: String, email: String?, displayName: String?, idToken: String?) {
+    if (idToken == null) {
+        Log.e("sendTokenToBackend", "ID Token is null. Aborting request.")
+        return
+    }
+
     val client = OkHttpClient()
     val requestBody = JSONObject().apply {
         put("userId", userId)
+        put("email", email ?: "Unknown")
+        put("displayName", displayName ?: "Unknown")
         put("idToken", idToken)
     }.toString().toRequestBody("application/json".toMediaTypeOrNull())
 
     val request = Request.Builder()
-        .url("${Constants.BASE_URL}/google-calendar/save-token")
+        .url("${Constants.BASE_URL}/users/save-user") // ✅ Correct API route
         .post(requestBody)
         .build()
 
     CoroutineScope(Dispatchers.IO).launch {
-        client.newCall(request).execute()
+        try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.e("sendTokenToBackend", "Failed to send token: ${response.code} - ${response.message}")
+                } else {
+                    Log.d("sendTokenToBackend", "Token sent successfully: ${response.code}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("sendTokenToBackend", "Error sending token to backend", e)
+        }
     }
 }
+

@@ -6,6 +6,7 @@ const morgan = require('morgan'); // For logging requests
 const helmet = require('helmet'); // For security headers
 const notificationRoutes = require('./routes/notifications'); // Notification routes
 const googleCalendarRoutes = require('./routes/googleCalendarRoutes'); // Google Calendar routes
+const saveUserRoutes = require('./routes/saveUsers');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ app.use(helmet()); // Secure app with various HTTP headers
 // Routes
 app.use('/api/notifications', notificationRoutes); // Notification-related routes
 app.use('/api/google-calendar', googleCalendarRoutes); // Google Calendar integration routes
+app.use('/api/users', saveUserRoutes);
 
 // Root Route
 app.get('/', (req, res) => {
