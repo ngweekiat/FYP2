@@ -1,21 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db'); // Import Firebase db instance from db.js
+const { google } = require('googleapis');
+const db = require('../config/db'); // Firebase Firestore instance
+
+// Set up OAuth2 Client
+const oAuth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+);
 
 /**
  * Validate the user payload.
- * @param {Object} payload - The user payload.
- * @returns {Object|null} - Returns an error object if validation fails, otherwise null.
  */
 function validateUserPayload(payload) {
-    const requiredFields = ['userId', 'email', 'idToken'];
-
+    const requiredFields = ['uid', 'email', 'idToken', 'authCode'];
     for (const field of requiredFields) {
         if (!payload[field]) {
-            return {
-                error: `Missing required field: ${field}`,
-                requiredFields,
-            };
+            return { error: `Missing required field: ${field}` };
         }
     }
     return null;
@@ -26,7 +28,6 @@ function validateUserPayload(payload) {
  */
 router.post('/save-user', async (req, res) => {
     const validationError = validateUserPayload(req.body);
-
     if (validationError) {
         return res.status(400).json({
             message: 'Validation Error',
@@ -34,24 +35,22 @@ router.post('/save-user', async (req, res) => {
         });
     }
 
-    const { userId, email, displayName = "", idToken, authCode } = req.body;
-    
+    const { uid, email, displayName = "", authCode } = req.body;
+
     try {
-        const userRef = db.collection('users').doc(userId);
-        const userSnapshot = await userRef.get();
+        // Exchange authCode for access & refresh tokens
+        const { tokens } = await oAuth2Client.getToken(authCode);
 
-        if (userSnapshot.exists) {
-            console.log(`User ${userId} already exists, updating data.`);
-        } else {
-            console.log(`Saving new user: ${userId}`);
-        }
-
+        // Store tokens in Firestore
+        const userRef = db.collection('users').doc(uid);
         await userRef.set(
             {
+                uid,
                 email,
                 displayName: displayName || "Unknown",
-                idToken,
-                authCode,  // Store the Google Calendar OAuth auth code
+                accessToken: tokens.access_token,
+                refreshToken: tokens.refresh_token, // ✅ Store refresh token
+                tokenExpiry: Date.now() + (tokens.expiry_date || 3600 * 1000), // Store expiry
                 lastLogin: new Date().toISOString(),
             },
             { merge: true }
@@ -59,21 +58,24 @@ router.post('/save-user', async (req, res) => {
 
         return res.status(201).json({
             message: 'User saved successfully',
-            userId,
+            uid,
+            accessToken: tokens.access_token
         });
     } catch (error) {
+        console.error('Error saving user:', error.message);
         return res.status(500).json({ message: 'Failed to save user', error: error.message });
     }
 });
 
+
 /**
- * GET: Retrieve user details by userId.
+ * GET: Retrieve user details by UID.
  */
-router.get('/user/:userId', async (req, res) => {
-    const { userId } = req.params;
+router.get('/user/:uid', async (req, res) => {
+    const { uid } = req.params;
 
     try {
-        const userSnapshot = await db.collection('users').doc(userId).get();
+        const userSnapshot = await db.collection('users').doc(uid).get();
         
         if (!userSnapshot.exists) {
             return res.status(404).json({ message: 'User not found' });
@@ -92,11 +94,11 @@ router.get('/user/:userId', async (req, res) => {
 /**
  * DELETE: Remove user details from Firestore.
  */
-router.delete('/user/:userId', async (req, res) => {
-    const { userId } = req.params;
+router.delete('/user/:uid', async (req, res) => {
+    const { uid } = req.params;
 
     try {
-        await db.collection('users').doc(userId).delete();
+        await db.collection('users').doc(uid).delete();
         return res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
         console.error('Error deleting user:', error);

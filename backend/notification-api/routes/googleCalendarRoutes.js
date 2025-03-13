@@ -5,7 +5,6 @@ const { addEvent } = require('../config/googleCalendar');
 /**
  * Route: POST /add-event
  * Adds an event to a user's Google Calendar.
- * Requires userId, summary, startDateTime, and endDateTime in the request body.
  */
 router.post('/add-event', async (req, res) => {
     const { userId, summary, startDateTime, endDateTime, location, description, attendees, timeZone } = req.body;

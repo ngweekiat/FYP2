@@ -231,7 +231,7 @@ fun sendTokenToBackend(userId: String, email: String?, displayName: String?, idT
 
     val client = OkHttpClient()
     val requestBody = JSONObject().apply {
-        put("userId", userId)
+        put("uid", userId)
         put("email", email ?: "Unknown")
         put("displayName", displayName ?: "Unknown")
         put("idToken", idToken)

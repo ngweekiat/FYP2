@@ -1,18 +1,14 @@
 const { google } = require('googleapis');
-const db = require('../config/db'); // Import Firebase instance
+const db = require('../config/db'); // Firebase Firestore instance
 
-const SCOPES = ['https://www.googleapis.com/auth/calendar'];
-
-let oAuth2Client = new google.auth.OAuth2(
+const oAuth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     process.env.GOOGLE_REDIRECT_URI
 );
 
 /**
- * Retrieve and refresh the user's Google OAuth token from Firestore.
- * @param {string} userId - The user's ID in Firestore.
- * @returns {Promise<object>} - OAuth2 tokens.
+ * Retrieves the user's access token, refreshing if necessary.
  */
 async function getUserToken(userId) {
     try {
@@ -24,15 +20,27 @@ async function getUserToken(userId) {
         }
 
         const userData = userSnapshot.data();
-        if (!userData.authCode) {
-            throw new Error('No auth token found for this user.');
+
+        if (!userData.refreshToken) {
+            throw new Error('No refresh token found for this user.');
         }
 
-        // Exchange the authCode for an access token
-        const { tokens } = await oAuth2Client.getToken(userData.authCode);
-        oAuth2Client.setCredentials(tokens);
+        // Check if access token is expired
+        if (Date.now() > userData.tokenExpiry) {
+            console.log(`Refreshing token for user: ${userId}`);
+            
+            const { tokens } = await oAuth2Client.refreshToken(userData.refreshToken);
 
-        return tokens;
+            // Update Firestore with the new tokens
+            await userRef.update({
+                accessToken: tokens.access_token,
+                tokenExpiry: Date.now() + (tokens.expiry_date || 3600 * 1000)
+            });
+
+            return tokens.access_token;
+        }
+
+        return userData.accessToken;
     } catch (error) {
         console.error('Error retrieving user token:', error.message);
         throw new Error('Failed to retrieve user token');
@@ -41,14 +49,11 @@ async function getUserToken(userId) {
 
 /**
  * Adds an event to the user's Google Calendar.
- * @param {string} userId - The user ID (to retrieve the token).
- * @param {object} eventDetails - The event details.
- * @returns {Promise<object>} - The created event.
  */
 async function addEvent(userId, eventDetails) {
     try {
-        const tokens = await getUserToken(userId);
-        oAuth2Client.setCredentials(tokens);
+        const accessToken = await getUserToken(userId);
+        oAuth2Client.setCredentials({ access_token: accessToken });
 
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
 
