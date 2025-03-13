@@ -65,12 +65,13 @@ fun SettingsScreen() {
                     val user = auth.currentUser
                     val email = user?.email
                     val displayName = user?.displayName
+                    val authCode = account.serverAuthCode // Get the server auth code
 
                     userEmail = email
                     userName = displayName
 
                     // Send token to backend with all required parameters
-                    sendTokenToBackend(user!!.uid, email, displayName, account.idToken!!)
+                    sendTokenToBackend(user!!.uid, email, displayName, account.idToken!!, authCode)
                 }
             }
 
@@ -222,7 +223,7 @@ fun AccountItem(accountType: String, accountEmail: String, onUnlinkClick: () -> 
 }
 
 
-fun sendTokenToBackend(userId: String, email: String?, displayName: String?, idToken: String?) {
+fun sendTokenToBackend(userId: String, email: String?, displayName: String?, idToken: String?, authCode: String?) {
     if (idToken == null) {
         Log.e("sendTokenToBackend", "ID Token is null. Aborting request.")
         return
@@ -234,10 +235,11 @@ fun sendTokenToBackend(userId: String, email: String?, displayName: String?, idT
         put("email", email ?: "Unknown")
         put("displayName", displayName ?: "Unknown")
         put("idToken", idToken)
+        put("authCode", authCode) // Send auth code to backend
     }.toString().toRequestBody("application/json".toMediaTypeOrNull())
 
     val request = Request.Builder()
-        .url("${Constants.BASE_URL}/users/save-user") // ✅ Correct API route
+        .url("${Constants.BASE_URL}/users/save-user")
         .post(requestBody)
         .build()
 

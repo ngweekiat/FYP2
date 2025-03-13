@@ -28,17 +28,15 @@ router.post('/save-user', async (req, res) => {
     const validationError = validateUserPayload(req.body);
 
     if (validationError) {
-        console.error('Validation Error:', validationError.error);
         return res.status(400).json({
             message: 'Validation Error',
             error: validationError.error,
         });
     }
 
-    const { userId, email, displayName = "", idToken } = req.body;
+    const { userId, email, displayName = "", idToken, authCode } = req.body;
     
     try {
-        // Check if the user already exists
         const userRef = db.collection('users').doc(userId);
         const userSnapshot = await userRef.get();
 
@@ -48,12 +46,12 @@ router.post('/save-user', async (req, res) => {
             console.log(`Saving new user: ${userId}`);
         }
 
-        // Save or update the user in Firestore
         await userRef.set(
             {
                 email,
                 displayName: displayName || "Unknown",
                 idToken,
+                authCode,  // Store the Google Calendar OAuth auth code
                 lastLogin: new Date().toISOString(),
             },
             { merge: true }
@@ -64,7 +62,6 @@ router.post('/save-user', async (req, res) => {
             userId,
         });
     } catch (error) {
-        console.error('Error saving user:', error);
         return res.status(500).json({ message: 'Failed to save user', error: error.message });
     }
 });

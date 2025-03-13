@@ -1,90 +1,70 @@
 const { google } = require('googleapis');
-const path = require('path');
-const fs = require('fs');
+const db = require('../config/db'); // Import Firebase instance
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
-const CREDENTIALS_PATH = path.join(__dirname, '../config/credentials/google-calendar-credentials.json');
-const TOKEN_PATH = path.join(__dirname, '../config/credentials/google-calendar-token.json');
 
+let oAuth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+);
 
-
-let oAuth2Client;
-
-// Initialize OAuth Client
-function initializeOAuth() {
+/**
+ * Retrieve and refresh the user's Google OAuth token from Firestore.
+ * @param {string} userId - The user's ID in Firestore.
+ * @returns {Promise<object>} - OAuth2 tokens.
+ */
+async function getUserToken(userId) {
     try {
-        const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-        const { client_id, client_secret, redirect_uris } = credentials.installed || credentials.web;
-        oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-        loadToken(); // Load saved token if it exists
-    } catch (err) {
-        console.error('Error initializing OAuth client:', err.message);
-        throw new Error('Failed to initialize OAuth client. Ensure credentials.json is correct.');
-    }
-}
+        const userRef = db.collection('users').doc(userId);
+        const userSnapshot = await userRef.get();
 
-// Generate Auth URL
-function getAuthUrl() {
-    return oAuth2Client.generateAuthUrl({
-        access_type: 'offline',
-        scope: SCOPES,
-    });
-}
-
-// Save Access Token
-function saveToken(code) {
-    return new Promise((resolve, reject) => {
-        oAuth2Client.getToken(code, (err, token) => {
-            if (err) {
-                console.error('Error retrieving access token:', err.message);
-                return reject(new Error('Failed to retrieve access token. Check authorization code and redirect URI.'));
-            }
-            try {
-                fs.writeFileSync(TOKEN_PATH, JSON.stringify(token));
-                oAuth2Client.setCredentials(token);
-                console.log('Token successfully stored to', TOKEN_PATH);
-                resolve('Token stored successfully');
-            } catch (fileErr) {
-                console.error('Error saving token:', fileErr.message);
-                reject(new Error('Failed to save access token.'));
-            }
-        });
-    });
-}
-
-// Load Existing Token
-function loadToken() {
-    if (fs.existsSync(TOKEN_PATH)) {
-        try {
-            const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
-            oAuth2Client.setCredentials(token);
-            console.log('Token loaded successfully');
-        } catch (err) {
-            console.error('Error loading token:', err.message);
+        if (!userSnapshot.exists) {
+            throw new Error('User not found in Firestore');
         }
-    } else {
-        console.log('No token found. User needs to authorize.');
+
+        const userData = userSnapshot.data();
+        if (!userData.authCode) {
+            throw new Error('No auth token found for this user.');
+        }
+
+        // Exchange the authCode for an access token
+        const { tokens } = await oAuth2Client.getToken(userData.authCode);
+        oAuth2Client.setCredentials(tokens);
+
+        return tokens;
+    } catch (error) {
+        console.error('Error retrieving user token:', error.message);
+        throw new Error('Failed to retrieve user token');
     }
 }
 
-// Add an Event to Google Calendar
-async function addEvent(eventDetails) {
+/**
+ * Adds an event to the user's Google Calendar.
+ * @param {string} userId - The user ID (to retrieve the token).
+ * @param {object} eventDetails - The event details.
+ * @returns {Promise<object>} - The created event.
+ */
+async function addEvent(userId, eventDetails) {
     try {
+        const tokens = await getUserToken(userId);
+        oAuth2Client.setCredentials(tokens);
+
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
 
         const event = {
             summary: eventDetails.summary,
-            location: eventDetails.location,
-            description: eventDetails.description,
+            location: eventDetails.location || '',
+            description: eventDetails.description || '',
             start: {
                 dateTime: eventDetails.startDateTime,
-                timeZone: 'America/Los_Angeles',
+                timeZone: eventDetails.timeZone || 'UTC',
             },
             end: {
                 dateTime: eventDetails.endDateTime,
-                timeZone: 'America/Los_Angeles',
+                timeZone: eventDetails.timeZone || 'UTC',
             },
-            attendees: eventDetails.attendees,
+            attendees: eventDetails.attendees || [],
         };
 
         const response = await calendar.events.insert({
@@ -94,10 +74,10 @@ async function addEvent(eventDetails) {
 
         console.log('Event created:', response.data);
         return response.data;
-    } catch (err) {
-        console.error('Error creating event:', err.message);
+    } catch (error) {
+        console.error('Error creating event:', error.message);
         throw new Error('Failed to create Google Calendar event.');
     }
 }
 
-module.exports = { initializeOAuth, getAuthUrl, saveToken, loadToken, addEvent };
+module.exports = { addEvent };
