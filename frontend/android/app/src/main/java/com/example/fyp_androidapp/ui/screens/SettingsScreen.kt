@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.fyp_androidapp.Constants
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -24,6 +25,14 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +47,7 @@ fun SettingsScreen() {
             .requestIdToken("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com")
             .requestEmail()
             .requestScopes(Scope("https://www.googleapis.com/auth/calendar.events")) // Request Calendar Access
+            .requestServerAuthCode("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com", true) // Request auth code
             .build()
         GoogleSignIn.getClient(context, gso)
     }
@@ -49,14 +59,17 @@ fun SettingsScreen() {
         try {
             val account = task.getResult(ApiException::class.java)!!
             val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-            auth.signInWithCredential(credential)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        val user = auth.currentUser
-                        userEmail = user?.email
-                        userName = user?.displayName
-                    }
+
+            auth.signInWithCredential(credential).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val user = auth.currentUser
+                    userEmail = user?.email
+                    userName = user?.displayName
+
+                    // Send token to backend
+                    sendTokenToBackend(user!!.uid, account.idToken!!)
                 }
+            }
         } catch (e: ApiException) {
             Log.w("GoogleSignIn", "Google sign-in failed", e)
         }
@@ -201,5 +214,23 @@ fun AccountItem(accountType: String, accountEmail: String, onUnlinkClick: () -> 
                 Text(text = "Unlink Calendar", color = Color.Gray, fontSize = 14.sp)
             }
         }
+    }
+}
+
+
+fun sendTokenToBackend(userId: String, idToken: String) {
+    val client = OkHttpClient()
+    val requestBody = JSONObject().apply {
+        put("userId", userId)
+        put("idToken", idToken)
+    }.toString().toRequestBody("application/json".toMediaTypeOrNull())
+
+    val request = Request.Builder()
+        .url("${Constants.BASE_URL}/google-calendar/save-token")
+        .post(requestBody)
+        .build()
+
+    CoroutineScope(Dispatchers.IO).launch {
+        client.newCall(request).execute()
     }
 }
