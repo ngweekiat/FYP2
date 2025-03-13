@@ -90,6 +90,9 @@ dependencies {
     // Add firebase dependencies
     implementation ("com.google.firebase:firebase-auth:22.0.0")
 
+    // Coil for loading google profile picture
+    implementation("io.coil-kt:coil-compose:2.0.0")
+
     // Unit Testing
     testImplementation("junit:junit:4.13.2")
 

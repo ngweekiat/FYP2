@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.fyp_androidapp.Constants
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
@@ -33,21 +32,25 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import coil.compose.AsyncImage
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
     val context = LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
+
     var userEmail by remember { mutableStateOf<String?>(auth.currentUser?.email) }
     var userName by remember { mutableStateOf<String?>(auth.currentUser?.displayName) }
+    var userPhotoUrl by remember { mutableStateOf<String?>(auth.currentUser?.photoUrl?.toString()) }
 
     val googleSignInClient = remember {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com")
             .requestEmail()
-            .requestScopes(Scope("https://www.googleapis.com/auth/calendar.events")) // Request Calendar Access
-            .requestServerAuthCode("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com", true) // Request auth code
+            .requestScopes(Scope("https://www.googleapis.com/auth/calendar.events"))
+            .requestServerAuthCode("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com", true)
             .build()
         GoogleSignIn.getClient(context, gso)
     }
@@ -63,18 +66,15 @@ fun SettingsScreen() {
             auth.signInWithCredential(credential).addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val user = auth.currentUser
-                    val email = user?.email
-                    val displayName = user?.displayName
-                    val authCode = account.serverAuthCode // Get the server auth code
+                    userEmail = user?.email
+                    userName = user?.displayName
+                    userPhotoUrl = user?.photoUrl?.toString()
 
-                    userEmail = email
-                    userName = displayName
+                    val authCode = account.serverAuthCode
 
-                    // Send token to backend with all required parameters
-                    sendTokenToBackend(user!!.uid, email, displayName, account.idToken!!, authCode)
+                    sendTokenToBackend(user!!.uid, userEmail, userName, account.idToken!!, authCode)
                 }
             }
-
         } catch (e: ApiException) {
             Log.w("GoogleSignIn", "Google sign-in failed", e)
         }
@@ -85,6 +85,7 @@ fun SettingsScreen() {
         if (user != null) {
             userEmail = user.email
             userName = user.displayName
+            userPhotoUrl = user.photoUrl?.toString()
         }
     }
 
@@ -107,11 +108,13 @@ fun SettingsScreen() {
                         AccountItem(
                             accountType = "Google Account",
                             accountEmail = userEmail!!,
+                            userPhotoUrl = userPhotoUrl,
                             onUnlinkClick = {
                                 auth.signOut()
                                 googleSignInClient.signOut().addOnCompleteListener {
                                     userEmail = null
                                     userName = null
+                                    userPhotoUrl = null
                                 }
                             }
                         )
@@ -141,6 +144,7 @@ fun SettingsScreen() {
                         googleSignInClient.signOut().addOnCompleteListener {
                             userEmail = null
                             userName = null
+                            userPhotoUrl = null
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -152,6 +156,7 @@ fun SettingsScreen() {
         }
     }
 }
+
 
 
 @Composable
@@ -172,25 +177,35 @@ fun CustomTopBar(title: String) {
 }
 
 @Composable
-fun AccountItem(accountType: String, accountEmail: String, onUnlinkClick: () -> Unit) {
+fun AccountItem(accountType: String, accountEmail: String, userPhotoUrl: String?, onUnlinkClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(Color.Gray, RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "L", // Placeholder for logo
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+        if (userPhotoUrl != null) {
+            AsyncImage(
+                model = userPhotoUrl,
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(40.dp)
+                    .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.Gray, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "L", // Placeholder for logo
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(16.dp))
