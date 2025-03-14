@@ -4,11 +4,12 @@ import NotificationCard from "../components/NotificationCard";
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
+  const [events, setEvents] = useState({});
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [lastVisible, setLastVisible] = useState(null);
-  const [selectedNotification, setSelectedNotification] = useState(null);
-  const [filter, setFilter] = useState("all"); // Added state for filter
+
+  const BACKEND_URL = "http://localhost:3000/api/notifications"; // ✅ Direct backend URL
 
   // Fetch notifications
   const fetchNotifications = async (limit = 20) => {
@@ -16,20 +17,57 @@ export default function Notifications() {
     setLoading(true);
 
     try {
-      const url = `/api/notifications_api?limit=${limit}${lastVisible ? `&startAfter=${lastVisible}` : ""}`;
+      const url = `${BACKEND_URL}?limit=${limit}${lastVisible ? `&startAfter=${lastVisible}` : ""}`;
       const response = await axios.get(url);
-
       const newNotifications = response.data.notifications || [];
+
       setNotifications((prev) => [...prev, ...newNotifications]);
 
       if (response.data.lastVisible) {
         setLastVisible(response.data.lastVisible);
       }
+
+      // ✅ Filter notifications where notification_importance === 1
+      const importantNotificationIds = newNotifications
+        .filter((n) => n.notification_importance === 1)
+        .map((n) => n.id);
+
+      // Fetch only important events
+      if (importantNotificationIds.length > 0) {
+        fetchEvents(importantNotificationIds);
+      }
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {
       setLoading(false);
-      setInitialLoading(false); // Hide "Fetching Notifications..." after initial fetch
+      setInitialLoading(false);
+    }
+  };
+
+  // Fetch calendar events for the notifications
+  const fetchEvents = async (notificationIds) => {
+    try {
+      const eventRequests = notificationIds.map((id) =>
+        axios.get(`${BACKEND_URL}/calendar_events/${id}`).catch(() => null)
+      );
+
+      const eventResponses = await Promise.all(eventRequests);
+      const eventData = {};
+
+      eventResponses.forEach((response, index) => {
+        if (response) {
+          console.log(`📩 API Response for ID ${notificationIds[index]}:`, response.data); // ✅ Log API response
+          if (response.data.event) {
+            eventData[notificationIds[index]] = response.data.event;
+          }
+        }
+      });
+
+      console.log("🔥 Updated Events Data:", eventData); // ✅ Debugging log
+
+      setEvents((prev) => ({ ...prev, ...eventData })); // ✅ Update state properly
+    } catch (error) {
+      console.error("🚨 Error fetching events:", error);
     }
   };
 
@@ -50,39 +88,9 @@ export default function Notifications() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loading]);
 
-  // Filter notifications based on the selected filter
-  const filteredNotifications = notifications.filter((notification) => {
-    if (filter === "all") return true;
-    if (filter === "added" && notification.status_message !== "Event Discarded") return true;
-    if (filter === "discarded" && notification.status_message === "Event Discarded") return true;
-    return false;
-  });
-
   return (
     <div className="p-6 h-screen flex flex-col">
       <h1 className="text-2xl font-bold">Notifications</h1>
-
-      {/* Filter buttons */}
-      <div className="flex space-x-4 mb-4">
-        <button
-          className={`px-4 py-2 rounded-lg ${filter === "all" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          onClick={() => setFilter("all")}
-        >
-          All
-        </button>
-        <button
-          className={`px-4 py-2 rounded-lg ${filter === "added" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          onClick={() => setFilter("added")}
-        >
-          Added
-        </button>
-        <button
-          className={`px-4 py-2 rounded-lg ${filter === "discarded" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          onClick={() => setFilter("discarded")}
-        >
-          Discarded
-        </button>
-      </div>
 
       {/* Scrollable Container */}
       <div className="flex-1 overflow-y-auto space-y-4 relative">
@@ -95,14 +103,11 @@ export default function Notifications() {
             </div>
           </div>
         ) : (
-          filteredNotifications.map((notification) => (
+          notifications.map((notification) => (
             <NotificationCard
               key={notification.id}
               notification={notification}
-              onAdd={() => setSelectedNotification(notification)}
-              onDiscard={() => {
-                setNotifications(notifications.map((n) => (n.id === notification.id ? { ...n, status_message: "Event Discarded" } : n)));
-              }}
+              event={events[notification.id] || null} // ✅ Pass the corresponding event
             />
           ))
         )}

@@ -2,7 +2,7 @@ import axios from "axios";
 
 export default async function handler(req, res) {
   try {
-    const response = await axios.get("http://localhost:3000/api/notifications/"); // Replace with your backend URL
+    const response = await axios.get("http://localhost:3000/api/notifications/calendar_events/"); // Replace with your backend URL
     console.log("API Response:", response.data); // Log response data
     res.status(200).json(response.data);
   } catch (error) {

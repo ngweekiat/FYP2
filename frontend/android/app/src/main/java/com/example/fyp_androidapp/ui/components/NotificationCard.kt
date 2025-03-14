@@ -1,7 +1,6 @@
 package com.example.fyp_androidapp.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -63,14 +62,9 @@ fun NotificationCard(
                 Text(
                     text = contentWithoutDate,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.clickable {
-                        // Trigger event editing when clicked
-                        onAdd() // This triggers the opening of the dialog in NotificationScreen.kt
-                    }
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
-
 
             // Display status message if button_status is not 0
             if (notification.button_status != 0) {
