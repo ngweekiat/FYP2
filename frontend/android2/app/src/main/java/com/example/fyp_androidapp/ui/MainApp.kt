@@ -13,6 +13,7 @@ import com.example.fyp_androidapp.ui.screens.*
 import com.example.fyp_androidapp.data.models.TableItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import com.example.fyp_androidapp.viewmodel.NotificationsViewModel
 
 
 @Composable
@@ -41,8 +42,8 @@ fun MainApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("notifications") { NotificationsScreen() }
-            composable("calendar") { CalendarScreen() }
-            composable("settings") { SettingsScreen() }
+            composable("calendar") {  }
+            composable("settings") {  }
         }
     }
 }
