@@ -195,7 +195,7 @@ router.post('/extract-event', async (req, res) => {
 
         // Save extracted event to a 'calendar_events' collection
         await db.collection('calendar_events').doc(doc.id).set(
-            { ...eventDetails, id: notificationId },
+            { ...eventDetails, id: notificationId, button_status: 0 },
             { merge: true }
         );
         
