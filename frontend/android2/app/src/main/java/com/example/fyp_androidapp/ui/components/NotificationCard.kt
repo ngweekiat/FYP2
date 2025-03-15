@@ -10,11 +10,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.fyp_androidapp.data.models.EventDetails
 import com.example.fyp_androidapp.data.models.Notification
 
 @Composable
 fun NotificationCard(
     notification: Notification,
+    eventDetails: EventDetails?,
     statusMessage: String?,
     onAdd: () -> Unit,
     onDiscard: () -> Unit
@@ -49,6 +51,7 @@ fun NotificationCard(
                 }
             }
 
+            // Show notification Sender
             if (notification.title.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -59,6 +62,7 @@ fun NotificationCard(
                 )
             }
 
+            // Show notification Content
             if (notification.content.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -70,64 +74,38 @@ fun NotificationCard(
                 )
             }
 
-            // Display status message if button_status is not 0
-            if (notification.button_status != 0) {
+            // Show event details if event is saved
+            if (eventDetails != null && eventDetails.buttonStatus == 1){
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val statusBoxColor =
-                        if (statusMessage?.contains("Event Discarded") == true) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.primary
+                EventDetailsCard(eventDetails) // Display event details
+            }
 
-                    val statusTextColor =
-                        if (statusMessage?.contains("Event Discarded") == true) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.primary
 
-                    Box(
-                        modifier = Modifier
-                            .width(4.dp)
-                            .height(40.dp)
-                            .background(statusBoxColor)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
 
-                    Text(
-                        text = statusMessage ?: "Event Status Unknown",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = statusTextColor
-                    )
-                }
-            } else {
-                // Show Add/Discard buttons only if button_status is 0
-                if (notification.isImportant) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Button(
-                            onClick = {
-                                onAdd()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Add", color = MaterialTheme.colorScheme.onPrimary)
-                        }
-                        OutlinedButton(
-                            onClick = {
-                                onDiscard()
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Discard", color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
+
+        }
+    }
+}
+
+@Composable
+fun EventDetailsCard(eventDetails: EventDetails) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "Event Details", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = "Title: ${eventDetails.title}")
+            Text(text = "Date: ${eventDetails.startDate}")
+            Text(text = "Time: ${eventDetails.startTime} - ${eventDetails.endTime}")
+            Text(text = "Location: ${eventDetails.locationOrMeeting}")
+            eventDetails.description.takeIf { it.isNotEmpty() }?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "Description: $it")
             }
         }
     }

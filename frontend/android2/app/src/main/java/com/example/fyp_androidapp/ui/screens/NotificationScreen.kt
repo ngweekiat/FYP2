@@ -30,14 +30,14 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()) {
 
     // Trigger fetching of notifications when scrolling reaches the bottom
     LaunchedEffect(lazyListState) {
-        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo }
+        snapshotFlow { lazyListState.layoutInfo }
             .debounce(300L)
-            .collect { visibleItems ->
-                val lastIndex = lazyListState.layoutInfo.totalItemsCount - 1
-                val lastVisibleIndex = visibleItems.lastOrNull()?.index ?: -1
+            .collect { layoutInfo ->
+                val totalItems = layoutInfo.totalItemsCount
+                val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
 
-                if (lastVisibleIndex >= lastIndex && !isLoading) {
-                    viewModel.fetchNotifications() // Fetch more notifications when bottom is reached
+                if (lastVisibleItemIndex >= totalItems - 1 && !isLoading) {
+                    viewModel.fetchNotifications()
                 }
             }
     }
@@ -56,6 +56,7 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()) {
                 Column {
                     NotificationCard(
                         notification = notification,
+                        eventDetails = eventDetails,
                         onAdd = {
                             selectedNotification = notification
                         },

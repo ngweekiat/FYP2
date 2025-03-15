@@ -112,7 +112,9 @@ router.post('/', async (req, res) => {
 
                 // Save extracted event to 'calendar_events'
                 await db.collection('calendar_events').doc(docRef.id).set(
-                    { ...eventDetails, id: notification.id },
+                    { ...eventDetails, id: 
+                        notification.id , 
+                        button_status: 0 },
                     { merge: true }
                 );
             } else {

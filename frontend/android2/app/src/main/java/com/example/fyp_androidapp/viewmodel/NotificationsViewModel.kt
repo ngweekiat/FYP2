@@ -3,17 +3,16 @@ package com.example.fyp_androidapp.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fyp_androidapp.data.models.EventDetails
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import com.example.fyp_androidapp.data.models.Notification
 import com.example.fyp_androidapp.data.repository.EventsRepository
 import com.example.fyp_androidapp.data.repository.NotificationsRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class NotificationsViewModel(
-    private val repository: NotificationsRepository = NotificationsRepository(),
-    private val EventsRepository: EventsRepository = EventsRepository()
+    private val notificationsRepository: NotificationsRepository = NotificationsRepository(),
+    private val eventsRepository: EventsRepository = EventsRepository()
 ) : ViewModel() {
 
     private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
@@ -27,56 +26,33 @@ class NotificationsViewModel(
 
     private var lastVisibleNotificationId: String? = null
 
-    // Fetch notifications from backend with pagination
     fun fetchNotifications(limit: Int = 20) {
-        if (_isLoading.value) return // Prevent duplicate requests
+        if (_isLoading.value) return
 
         _isLoading.value = true
         viewModelScope.launch {
-            try {
-                val newNotifications = repository.fetchNotifications(limit, lastVisibleNotificationId)
+            val (newNotifications, lastVisibleId) = notificationsRepository.fetchNotifications(lastVisibleNotificationId, limit)
 
-                // Get notifications that are important
-                val importantNotifications = newNotifications.filter { it.isImportant }
-
-                // Fetch calendar events for important notifications
-                fetchcalendarevents(importantNotifications)
-
-                if (newNotifications.isNotEmpty()) {
-                    lastVisibleNotificationId = newNotifications.last().id
-                }
-
-                // Store the notifications
+            if (newNotifications.isNotEmpty()) {
                 _notifications.value = _notifications.value + newNotifications
+                lastVisibleNotificationId = lastVisibleId
 
-                // Filter important notifications
-
-
-
-
-            } catch (e: Exception) {
-                // Handle the error (e.g., show a message to the user)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    private fun fetchcalendarevents(notifications: List<Notification>) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val eventsMap = mutableMapOf<String, EventDetails>()
-
-            for (notification in notifications) {
-                val event = EventsRepository.fetchEventDetails(notification.id)
-                if (event != null) {
-                    eventsMap[notification.id] = event
+                // Fetch event details only for important notifications
+                newNotifications.filter { it.isImportant }.forEach { notification ->
+                    fetchCalendarEvent(notification.id)
                 }
             }
-            _calendarEvents.value = eventsMap
+
+            _isLoading.value = false
         }
     }
 
-
-
-
+    fun fetchCalendarEvent(notificationId: String) {
+        viewModelScope.launch {
+            val eventDetails = eventsRepository.fetchCalendarEvent(notificationId)
+            if (eventDetails != null) {
+                _calendarEvents.value = _calendarEvents.value + (notificationId to eventDetails)
+            }
+        }
+    }
 }
