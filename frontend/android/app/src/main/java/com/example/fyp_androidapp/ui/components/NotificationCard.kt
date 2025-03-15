@@ -1,6 +1,7 @@
 package com.example.fyp_androidapp.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -18,6 +19,8 @@ fun NotificationCard(
     onAdd: () -> Unit,
     onDiscard: () -> Unit
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -58,11 +61,12 @@ fun NotificationCard(
 
             if (notification.content.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                val contentWithoutDate = notification.content.substringBefore("\n")
                 Text(
-                    text = contentWithoutDate,
+                    text = notification.content,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = if (isExpanded) Int.MAX_VALUE else 3, // Expand text when clicked
+                    modifier = Modifier.clickable { isExpanded = !isExpanded }
                 )
             }
 

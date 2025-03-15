@@ -233,6 +233,7 @@ fun NotificationsScreen() {
                     put("start_time", updatedEvent.startTime)
                     put("end_date", updatedEvent.endDate)
                     put("end_time", updatedEvent.endTime)
+                    put("button_status", 1) // Mark as saved
                 }.toString()
 
                 val request = Request.Builder()
@@ -344,14 +345,18 @@ fun NotificationsScreen() {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(notifications) { notification ->
-                val eventDetails = eventDetailsMap[notification.id]
+                var eventDetails = eventDetailsMap[notification.id]
                 val dynamicStatusMessage = eventDetails?.let { formatEventStatus(it) } ?: notification.status_message
 
                 Column {
                     NotificationCard(
                         notification = notification,
                         statusMessage = dynamicStatusMessage,
-                        onAdd = { selectedNotification = notification },
+                        onAdd = {
+                            eventDetails = null // Reset to prevent showing old data
+                            fetchCalendarEvent(notification.id) // Fetch new event details
+                            selectedNotification = notification // Set notification after fetching details
+                        },
                         onDiscard = {
                             discardEvent(notification.id,
                                 onSuccess = {
@@ -385,12 +390,14 @@ fun NotificationsScreen() {
 
         // Show the event popup dialog immediately when a notification is selected
         selectedNotification?.let { notification ->
+            val currentEventDetails = eventDetailsMap[notification.id] ?: eventDetails ?: EventDetails()
+
             EventPopupDialog(
-                eventDetails = eventDetails ?: EventDetails(), // Provide a default empty event
+                eventDetails = currentEventDetails, // Ensure it gets updated details
                 onSave = { savedEvent ->
                     updateEvent(notification.id, savedEvent) // API call to update event
                     notifications = notifications.map {
-                        if (it == notification) it.copy(
+                        if (it.id == notification.id) it.copy(
                             status_message = formatEventStatus(savedEvent),
                             button_status = 1
                         )
@@ -401,7 +408,6 @@ fun NotificationsScreen() {
                 onDismiss = { selectedNotification = null }
             )
         }
-
     }
 
 }
