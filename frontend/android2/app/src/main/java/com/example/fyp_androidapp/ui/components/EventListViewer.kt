@@ -7,7 +7,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.fyp_androidapp.data.models.EventDetails
 import kotlinx.datetime.LocalDate
@@ -17,7 +16,7 @@ import androidx.compose.foundation.lazy.items
 @Composable
 fun EventListViewer(
     selectedDate: LocalDate?,
-    events: Map<LocalDate, List<String>>,
+    events: Map<LocalDate, List<EventDetails>>,  // ✅ Updated to List<EventDetails>
     onEventSelected: (EventDetails) -> Unit
 ) {
     Box(
@@ -43,30 +42,22 @@ fun EventListViewer(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        onEventSelected(EventDetails(title = "Event", description = event))
-                                    }
+                                    .clickable { onEventSelected(event) }  // ✅ Pass the actual event
                                     .padding(vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                val parts = event.split(" - ", limit = 2)
-                                val time = parts.getOrNull(0) ?: ""
-                                val description = parts.getOrNull(1) ?: event
-
                                 Text(
-                                    text = description,
+                                    text = event.title,  // ✅ Use event details directly
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f)
                                 )
 
                                 Text(
-                                    text = time,
+                                    text = event.startTime,  // ✅ Use event time
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    textAlign = TextAlign.End,
-                                    modifier = Modifier.padding(start = 16.dp)
+                                    color = MaterialTheme.colorScheme.secondary
                                 )
                             }
                         }

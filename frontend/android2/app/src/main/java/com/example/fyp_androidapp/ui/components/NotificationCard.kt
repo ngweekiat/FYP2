@@ -140,7 +140,15 @@ fun NotificationCard(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = eventDetails?.let { "${it.startDate} ${it.startTime}" } ?: "No Date",
+                                text = eventDetails?.let {
+                                    val formattedDate = if (it.startDate.isNotBlank()) DateUtils.formatDateOnly(it.startDate) else ""
+                                    val formattedTime = if (it.startTime.isNotBlank()) DateUtils.formatTimeOnly(it.startTime) else ""
+
+                                    listOf(formattedDate, formattedTime) // ✅ Combine only non-empty values
+                                        .filter { it.isNotEmpty() }
+                                        .joinToString(" ") // ✅ Join with a space only if both exist
+                                } ?: "No Date"
+,
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary
                             )

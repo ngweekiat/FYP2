@@ -17,7 +17,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
+import java.time.LocalDate
+
 
 @Composable
 fun EventPopupDialog(
@@ -66,6 +69,7 @@ fun EventPopupDialog(
                     TextButton(onClick = {
                         onSave(
                             EventDetails(
+                                id = eventDetails.id,
                                 title = title.text,
                                 description = description.text,
                                 allDay = allDay,
@@ -116,7 +120,8 @@ fun EventPopupDialog(
                                 DatePickerDialog(
                                     context,
                                     { _, year, month, dayOfMonth ->
-                                        startDate = TextFieldValue("${dayOfMonth.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year")
+                                        val localDate = LocalDate.of(year, month + 1, dayOfMonth)
+                                        startDate = TextFieldValue(localDate.format(DateTimeFormatter.ISO_DATE)) // Stores as yyyy-MM-dd
                                     },
                                     calendar.get(Calendar.YEAR),
                                     calendar.get(Calendar.MONTH),
@@ -142,7 +147,8 @@ fun EventPopupDialog(
                                 DatePickerDialog(
                                     context,
                                     { _, year, month, dayOfMonth ->
-                                        endDate = TextFieldValue("${dayOfMonth.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year")
+                                        val localDate = LocalDate.of(year, month + 1, dayOfMonth)
+                                        endDate = TextFieldValue(localDate.format(DateTimeFormatter.ISO_DATE)) // Stores as yyyy-MM-dd
                                     },
                                     calendar.get(Calendar.YEAR),
                                     calendar.get(Calendar.MONTH),

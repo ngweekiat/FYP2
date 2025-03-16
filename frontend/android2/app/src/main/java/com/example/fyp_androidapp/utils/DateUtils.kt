@@ -18,11 +18,15 @@ object DateUtils {
      */
     fun formatDate(date: String, time: String): String {
         return try {
-            val localDate = LocalDate.parse(date)
+            // Fix: Trim whitespace to prevent parsing errors
+            val trimmedDate = date.trim()
+            val trimmedTime = time.trim()
+            // Ensure correct formats
+            val localDate = LocalDate.parse(trimmedDate, DateTimeFormatter.ISO_DATE)
             val formattedDate = localDate.format(dateFormatter)
 
-            val formattedTime = if (time != "Unknown Time") {
-                val localTime = LocalTime.parse(time)
+            val formattedTime = if (trimmedTime.isNotEmpty() && trimmedTime != "Unknown Time") {
+                val localTime = LocalTime.parse(trimmedTime, DateTimeFormatter.ofPattern("H:mm"))
                 localTime.format(timeFormatter).uppercase()
             } else {
                 "Unknown Time"
@@ -35,17 +39,31 @@ object DateUtils {
     }
 
     /**
-     * Converts an ISO 8601 timestamp into a Singapore timezone formatted string.
-     * @param timestamp ISO 8601 formatted timestamp.
-     * @return A formatted time string in `MMM dd, yyyy hh:mma` format.
+     * Formats a date string from `yyyy-MM-dd` to `MMM dd, yyyy`.
+     * @param date The date in `yyyy-MM-dd` format.
+     * @return Formatted date in `MMM dd, yyyy` format or "Invalid Date" if parsing fails.
      */
-    fun formatTimestampToSGT(timestamp: String): String {
+    fun formatDateOnly(date: String): String {
         return try {
-            val zonedDateTime = ZonedDateTime.parse(timestamp)
-                .withZoneSameInstant(ZoneId.of("Asia/Singapore"))
-            zonedDateTime.format(dateFormatter) + " " + zonedDateTime.format(timeFormatter).uppercase()
+            val localDate = LocalDate.parse(date.trim())
+            localDate.format(dateFormatter)
         } catch (e: Exception) {
-            "Unknown Time"
+            "Invalid Date"
         }
     }
+
+    /**
+     * Formats a time string from `HH:mm` or `H:mm` to `hh:mma`.
+     * @param time The time in `HH:mm` format.
+     * @return Formatted time in `hh:mma` format or "Invalid Time" if parsing fails.
+     */
+    fun formatTimeOnly(time: String): String {
+        return try {
+            val localTime = LocalTime.parse(time.trim(), DateTimeFormatter.ofPattern("H:mm")) // Allows single-digit hours
+            localTime.format(timeFormatter).uppercase() // Converts AM/PM to uppercase
+        } catch (e: Exception) {
+            "Invalid Time"
+        }
+    }
+
 }

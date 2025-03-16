@@ -9,21 +9,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.fyp_androidapp.ui.components.CalendarViewer
 import com.example.fyp_androidapp.ui.components.EventListViewer
 import com.example.fyp_androidapp.ui.components.EventPopupDialog
 import com.example.fyp_androidapp.data.models.EventDetails
-import com.example.fyp_androidapp.Constants
 import com.example.fyp_androidapp.viewmodel.CalendarViewModel
-import kotlinx.coroutines.*
 import kotlinx.datetime.*
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONArray
-import org.json.JSONObject
 
 @Composable
-fun CalendarScreen(viewModel: CalendarViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
     val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     var year by remember { mutableStateOf(currentDate.year) }
     var month by remember { mutableStateOf(currentDate.month) }
@@ -107,22 +102,37 @@ fun CalendarScreen(viewModel: CalendarViewModel = androidx.lifecycle.viewmodel.c
                 month = month,
                 selectedDate = selectedDate,
                 onDateSelected = { viewModel.selectDate(it) },
-                events = events
+                events = events  // ✅ Pass the updated List<EventDetails>
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             EventListViewer(
                 selectedDate = selectedDate,
-                events = events,
+                events = events,  // ✅ Now using EventDetails
                 onEventSelected = { eventDetails ->
-                    viewModel.showEventPopup(eventDetails)
+                    viewModel.showEventPopup(eventDetails)  // ✅ Pass EventDetails directly
                 }
             )
         }
 
         FloatingActionButton(
-            onClick = { viewModel.showEventPopup(EventDetails()) },
+            onClick = {
+                // ✅ Ensure a new event has a unique ID
+                val newEvent = EventDetails(
+                    id = System.currentTimeMillis().toString(), // 🔥 Generate unique ID
+                    title = "New Event",
+                    startDate = selectedDate?.toString() ?: currentDate.toString(),
+                    startTime = "00:00",
+                    endDate = selectedDate?.toString() ?: currentDate.toString(),
+                    endTime = "23:59",
+                    locationOrMeeting = "",
+                    description = "",
+                    allDay = false,
+                    buttonStatus = 1
+                )
+                viewModel.showEventPopup(newEvent)
+            },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -137,7 +147,14 @@ fun CalendarScreen(viewModel: CalendarViewModel = androidx.lifecycle.viewmodel.c
     if (isPopupVisible) {
         EventPopupDialog(
             eventDetails = selectedEventDetails,
-            onSave = { viewModel.hideEventPopup() },
+            onSave = { newEventDetails ->
+                // ✅ Check if the event has a valid ID before saving
+                val eventId = if (newEventDetails.id.isNotEmpty()) newEventDetails.id else System.currentTimeMillis().toString()
+
+                // ✅ Ensure the event gets updated correctly
+                viewModel.updateEvent(newEventDetails.copy(id = eventId))
+                viewModel.hideEventPopup()  // ✅ Hide popup after saving
+            },
             onDismiss = { viewModel.hideEventPopup() }
         )
     }

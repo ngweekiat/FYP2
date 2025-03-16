@@ -1,6 +1,7 @@
 package com.example.fyp_androidapp.data.models
 
 data class EventDetails(
+    val id: String = "",  // ✅ Ensure each event has a unique ID
     val title: String = "",
     val description: String = "",
     val allDay: Boolean = false, // All day button

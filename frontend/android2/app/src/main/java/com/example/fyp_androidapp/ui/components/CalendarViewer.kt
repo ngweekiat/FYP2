@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.fyp_androidapp.data.models.EventDetails
 import kotlinx.datetime.*
 
 @Composable
@@ -21,7 +22,7 @@ fun CalendarViewer(
     month: Month,
     selectedDate: LocalDate?,
     onDateSelected: (LocalDate) -> Unit,
-    events: Map<LocalDate, List<String>>
+    events: Map<LocalDate, List<EventDetails>>  // ✅ Use EventDetails instead of Strings
 ) {
     val firstDayOfMonth = LocalDate(year, month, 1)
     val daysInMonth = getDaysInMonth(year, month)
@@ -56,6 +57,7 @@ fun CalendarViewer(
 
             itemsIndexed(List(daysInMonth) { it + 1 }) { _, day ->
                 val currentDate = firstDayOfMonth.plus(day - 1, DateTimeUnit.DAY)
+                val eventsOnDate = events[currentDate] ?: emptyList() // ✅ Get event details for the date
 
                 val backgroundColor = when {
                     currentDate == today -> Color(0xFFADD8E6) // Highlight today's date
@@ -72,10 +74,15 @@ fun CalendarViewer(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = day.toString(), color = Color.White.takeIf { currentDate == today } ?: Color.Black)
-                        if (events.containsKey(currentDate)) {
+                        Text(
+                            text = day.toString(),
+                            color = Color.White.takeIf { currentDate == today } ?: Color.Black
+                        )
+
+                        // ✅ Show event indicator if there are events
+                        if (eventsOnDate.isNotEmpty()) {
                             Text(
-                                text = "\u2022",
+                                text = "•", // Show the number of events
                                 color = Color.Red,
                                 textAlign = TextAlign.Center
                             )
