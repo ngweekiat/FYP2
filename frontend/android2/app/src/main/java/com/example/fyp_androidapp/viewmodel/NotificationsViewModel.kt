@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+
 class NotificationsViewModel(
     private val notificationsRepository: NotificationsRepository = NotificationsRepository(),
     private val eventsRepository: EventsRepository = EventsRepository()
@@ -68,9 +69,20 @@ class NotificationsViewModel(
             }
             _calendarEvents.value = newMap.toMap() // ✅ Ensure reactivity
 
-            eventsRepository.addEventToCalendar(notificationId)
+            // Update notification importance locally
+            _notifications.value = _notifications.value.map {
+                if (it.id == notificationId) it.copy(isImportant = true) else it
+            }
+
+            // Send update to backend
+            notificationsRepository.updateNotificationImportance(notificationId, 1)
+
+            // Add event to the calendar
+            eventsRepository.addEventToCalendar(notificationId, newEvent)
         }
     }
+
+
 
     fun discardEvent(notificationId: String) {
         viewModelScope.launch {

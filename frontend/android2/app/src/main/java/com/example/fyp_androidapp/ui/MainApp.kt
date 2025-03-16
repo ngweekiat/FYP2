@@ -42,7 +42,7 @@ fun MainApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("notifications") { NotificationsScreen() }
-            composable("calendar") {  }
+            composable("calendar") { CalendarScreen() }
             composable("settings") {  }
         }
     }

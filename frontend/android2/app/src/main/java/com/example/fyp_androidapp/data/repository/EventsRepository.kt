@@ -54,17 +54,44 @@ class EventsRepository {
         }
     }
 
-    suspend fun addEventToCalendar(notificationId: String): EventDetails? {
+    suspend fun addEventToCalendar(notificationId: String, eventDetails: EventDetails): EventDetails? {
         return withContext(Dispatchers.IO) {
             try {
+                // Step 1: Check if the event already exists
+                val checkRequest = Request.Builder()
+                    .url("${Constants.BASE_URL}/notifications/calendar_events/$notificationId")
+                    .get()
+                    .build()
+
+                val checkResponse = client.newCall(checkRequest).execute()
+                val eventExists = checkResponse.isSuccessful
+
                 val jsonBody = JSONObject().apply {
+                    put("id", notificationId) // ✅ Ensure ID is explicitly set in the request body
+                    put("title", eventDetails.title)
+                    put("description", eventDetails.description)
+                    put("location", eventDetails.locationOrMeeting)
+                    put("allDay", eventDetails.allDay)
+                    put("start_date", eventDetails.startDate)
+                    put("start_time", eventDetails.startTime)
+                    put("end_date", eventDetails.endDate)
+                    put("end_time", eventDetails.endTime)
                     put("button_status", 1) // ✅ Marks event as added
                 }.toString()
 
-                val request = Request.Builder()
-                    .url("${Constants.BASE_URL}/notifications/calendar_events/$notificationId")
-                    .patch(RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody))
-                    .build()
+                val request: Request = if (eventExists) {
+                    // Step 2: If event exists, update it with PATCH
+                    Request.Builder()
+                        .url("${Constants.BASE_URL}/notifications/calendar_events/$notificationId")
+                        .patch(RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody))
+                        .build()
+                } else {
+                    // Step 3: If event does not exist, create it with POST
+                    Request.Builder()
+                        .url("${Constants.BASE_URL}/notifications/calendar_events")
+                        .post(RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody))
+                        .build()
+                }
 
                 val response = client.newCall(request).execute()
 
@@ -84,18 +111,21 @@ class EventsRepository {
                         buttonStatus = 1
                     )
 
-                    Log.d("EventsRepository", "Event Added: $updatedEvent for Notification ID: $notificationId")
+                    Log.d("EventsRepository", "Event Added/Updated: $updatedEvent for Notification ID: $notificationId")
                     updatedEvent
                 } else {
-                    Log.e("EventsRepository", "Failed to add event for Notification ID: $notificationId")
+                    Log.e("EventsRepository", "Failed to add/update event for Notification ID: $notificationId")
                     null
                 }
             } catch (e: Exception) {
-                Log.e("EventsRepository", "Error adding event: ${e.message}")
+                Log.e("EventsRepository", "Error adding/updating event: ${e.message}")
                 null
             }
         }
     }
+
+
+
 
     suspend fun discardEvent(eventId: String): EventDetails? {
         return withContext(Dispatchers.IO) {

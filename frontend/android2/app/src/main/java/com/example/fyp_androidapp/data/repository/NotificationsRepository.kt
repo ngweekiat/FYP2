@@ -1,11 +1,14 @@
 package com.example.fyp_androidapp.data.repository
 
+import android.util.Log
 import com.example.fyp_androidapp.Constants
 import com.example.fyp_androidapp.data.models.Notification
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.time.ZonedDateTime
 import java.time.ZoneId
@@ -27,6 +30,33 @@ class NotificationsRepository {
             "Unknown Time"
         }
     }
+
+    suspend fun updateNotificationImportance(notificationId: String, importance: Int) {
+        withContext(Dispatchers.IO) {
+            try {
+                val url = "$backendUrl/$notificationId/updateImportance"
+                val requestBody = JSONObject().apply {
+                    put("notification_importance", importance)
+                }.toString()
+
+                val request = Request.Builder()
+                    .url(url)
+                    .put(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                    .build()
+
+                val response = client.newCall(request).execute()
+
+                if (!response.isSuccessful) {
+                    Log.e("NotificationsRepo", "Failed to update importance for $notificationId")
+                } else {
+                    Log.d("NotificationsRepo", "Successfully updated importance for $notificationId")
+                }
+            } catch (e: Exception) {
+                Log.e("NotificationsRepo", "Error updating importance", e)
+            }
+        }
+    }
+
 
     suspend fun fetchNotifications(lastVisible: String?, limit: Int = 20): Pair<List<Notification>, String?> {
         return withContext(Dispatchers.IO) {

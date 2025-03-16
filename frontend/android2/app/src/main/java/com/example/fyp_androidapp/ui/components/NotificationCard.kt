@@ -140,7 +140,7 @@ fun NotificationCard(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = eventDetails?.let { DateUtils.formatDate(it.startDate, it.startTime) } ?: "No Date",
+                                text = eventDetails?.let { "${it.startDate} ${it.startTime}" } ?: "No Date",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary
                             )

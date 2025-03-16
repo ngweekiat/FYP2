@@ -404,5 +404,38 @@ router.get('/export', async (req, res) => {
 });
 
 
+/**
+ * POST: Create a new calendar event.
+ */
+router.post('/calendar_events', async (req, res) => {
+    const eventData = req.body;
+
+    if (!eventData.id) {
+        return res.status(400).json({ message: 'Missing required field: event ID' });
+    }
+
+    try {
+        // Check if event with the same ID already exists
+        const snapshot = await db.collection('calendar_events').where('id', '==', eventData.id).get();
+
+        if (!snapshot.empty) {
+            return res.status(409).json({ message: 'Calendar event already exists', eventId: eventData.id });
+        }
+
+        // Save new event to Firestore with the specified ID
+        await db.collection('calendar_events').doc(eventData.id).set(eventData);
+
+        res.status(201).json({
+            message: 'Calendar event created successfully',
+            event: eventData,
+        });
+    } catch (error) {
+        console.error('Error creating calendar event:', error);
+        res.status(500).json({ message: 'Failed to create calendar event', error: error.message });
+    }
+});
+
+
+
 module.exports = router;
 
