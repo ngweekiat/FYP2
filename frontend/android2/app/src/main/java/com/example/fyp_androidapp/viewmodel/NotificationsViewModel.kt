@@ -55,4 +55,32 @@ class NotificationsViewModel(
             }
         }
     }
+
+    fun addEvent(notificationId: String) {
+        viewModelScope.launch {
+            val updatedEvent = eventsRepository.addEventToCalendar(notificationId)
+            if (updatedEvent != null) {
+                // Force a new instance to trigger recomposition
+                val newMap = _calendarEvents.value.toMutableMap().apply {
+                    put(notificationId, updatedEvent)
+                }
+                _calendarEvents.value = newMap.toMap() // Ensure it's a new object
+                //                Log.d("ViewModel", "Event Added: ${updatedEvent.title} for Notification ID: $notificationId")
+            }
+        }
+    }
+
+    fun discardEvent(notificationId: String) {
+        viewModelScope.launch {
+            val updatedEvent = eventsRepository.discardEvent(notificationId)?.copy(buttonStatus = 2) // 🔥 Ensure status is set
+            if (updatedEvent != null) {
+                // Force a new instance to trigger recomposition
+                val newMap = _calendarEvents.value.toMutableMap().apply {
+                    put(notificationId, updatedEvent)
+                }
+                _calendarEvents.value = newMap.toMap() // Ensure it's a new object
+                //                Log.d("ViewModel", "Event Discarded for Notification ID: $notificationId")
+            }
+        }
+    }
 }

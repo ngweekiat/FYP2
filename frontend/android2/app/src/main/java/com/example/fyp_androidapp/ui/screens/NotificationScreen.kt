@@ -15,20 +15,31 @@ import com.example.fyp_androidapp.ui.components.EventPopupDialog
 import com.example.fyp_androidapp.ui.components.NotificationCard
 import com.example.fyp_androidapp.viewmodel.NotificationsViewModel
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.launch
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()) {
+fun NotificationsScreen(viewModel: NotificationsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()){
     val notifications by viewModel.notifications.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState() // Observe isLoading from ViewModel
+    val calendarEvents by viewModel.calendarEvents.collectAsState() // ✅ Observe event details from ViewModel
+    LaunchedEffect(calendarEvents) {
+        Log.d("NotificationScreen", "Updated Calendar Events: $calendarEvents")
+    }
+    val isLoading by viewModel.isLoading.collectAsState()
     var selectedNotification by remember { mutableStateOf<Notification?>(null) }
-    var eventDetails by remember { mutableStateOf<EventDetails?>(null) }
-    var eventDetailsMap by remember { mutableStateOf(mapOf<String, EventDetails>()) }
+    var showDialog by remember { mutableStateOf(false) }
 
     val lazyListState = rememberLazyListState()
 
-    // Trigger fetching of notifications when scrolling reaches the bottom
+    // ✅ Log notifications and calendar events before passing them
+    LaunchedEffect(notifications) {
+        notifications.forEach { notification ->
+            val eventDetails = calendarEvents[notification.id]
+            Log.d("NotificationScreen", "Notification: ${notification}")
+            Log.d("NotificationScreen", "EventDetails: ${eventDetails ?: "No Event"}")
+        }
+    }
+
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo }
             .debounce(300L)
@@ -51,19 +62,22 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(notifications) { notification ->
-                val eventDetails = eventDetailsMap[notification.id]
+                val eventDetails = calendarEvents[notification.id]
+
+                Log.d("NotificationScreen", "Passing Notification: ${notification}, ID: ${notification.id}")
+                Log.d("NotificationScreen", "Passing Event: ${eventDetails ?: "No Event"}")
 
                 Column {
                     NotificationCard(
                         notification = notification,
-                        eventDetails = eventDetails,
+                        eventDetails = eventDetails,  // ✅ Pass correct event details
                         onAdd = {
                             selectedNotification = notification
+                            showDialog = true
                         },
                         onDiscard = {
-                            eventDetailsMap = eventDetailsMap - notification.id
-                        },
-                        statusMessage = ""
+                            viewModel.discardEvent(notification.id)
+                        }
                     )
                     Divider(
                         modifier = Modifier.padding(vertical = 4.dp),
@@ -73,7 +87,6 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()) {
                 }
             }
 
-            // Show loading indicator when fetching more notifications
             item {
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.padding(16.dp))
@@ -82,5 +95,16 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()) {
                 }
             }
         }
+    }
+    // ✅ Show popup when a notification is selected
+    if (showDialog && selectedNotification != null) {
+        EventPopupDialog(
+            eventDetails = calendarEvents[selectedNotification!!.id] ?: EventDetails(),
+            onSave = { newEventDetails ->
+                viewModel.addEvent(selectedNotification!!.id)
+                showDialog = false  // Close dialog after saving
+            },
+            onDismiss = { showDialog = false }  // Close dialog without saving
+        )
     }
 }

@@ -52,7 +52,6 @@ class NotificationsRepository {
                             content = item.optString("bigText", item.optString("text", "No Content")),
                             time = formatTimestampToSGT(item.optString("timestamp", "Unknown Time")),
                             isImportant = item.optInt("notification_importance", 0) == 1,
-                            button_status = item.optInt("button_status", 0)
                         )
                         newNotifications.add(notification)
                     }
