@@ -101,10 +101,11 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = androidx.lifecycle.v
         EventPopupDialog(
             eventDetails = calendarEvents[selectedNotification!!.id] ?: EventDetails(),
             onSave = { newEventDetails ->
-                viewModel.addEvent(selectedNotification!!.id)
-                showDialog = false  // Close dialog after saving
+                Log.d("NotificationScreen", "Saving Event: $newEventDetails for Notification ID: ${selectedNotification!!.id}")
+                viewModel.addEvent(selectedNotification!!.id, newEventDetails) // ✅ Pass event details for instant update
+                showDialog = false  // ✅ Close dialog
             },
-            onDismiss = { showDialog = false }  // Close dialog without saving
+            onDismiss = { showDialog = false }
         )
     }
 }

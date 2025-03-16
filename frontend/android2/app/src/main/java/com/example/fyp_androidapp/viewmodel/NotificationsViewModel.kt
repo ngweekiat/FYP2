@@ -1,5 +1,6 @@
 package com.example.fyp_androidapp.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fyp_androidapp.data.models.EventDetails
@@ -56,19 +57,23 @@ class NotificationsViewModel(
         }
     }
 
-    fun addEvent(notificationId: String) {
+    fun addEvent(notificationId: String, newEventDetails: EventDetails) {
         viewModelScope.launch {
-            val updatedEvent = eventsRepository.addEventToCalendar(notificationId)
-            if (updatedEvent != null) {
-                // Force a new instance to trigger recomposition
-                val newMap = _calendarEvents.value.toMutableMap().apply {
-                    put(notificationId, updatedEvent)
-                }
-                _calendarEvents.value = newMap.toMap() // Ensure it's a new object
-                //                Log.d("ViewModel", "Event Added: ${updatedEvent.title} for Notification ID: $notificationId")
+            // Update UI immediately
+            val newEvent = newEventDetails.copy(buttonStatus = 1) // ✅ Ensure buttonStatus is set
+
+            // Force recomposition by creating a new map instance
+            val newMap = _calendarEvents.value.toMutableMap().apply {
+                put(notificationId, newEvent)
             }
+            _calendarEvents.value = newMap.toMap() // ✅ Ensure reactivity
+
+            eventsRepository.addEventToCalendar(notificationId)
         }
     }
+
+
+
 
     fun discardEvent(notificationId: String) {
         viewModelScope.launch {
