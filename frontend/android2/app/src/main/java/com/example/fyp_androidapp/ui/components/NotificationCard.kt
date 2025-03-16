@@ -27,6 +27,7 @@ fun NotificationCard(
     onLongPress: () -> Unit
 ) {
     var localButtonStatus by remember { mutableStateOf(eventDetails?.buttonStatus) }
+    var isExpanded by remember { mutableStateOf(false) } // ✅ State to track expansion
 
     LaunchedEffect(eventDetails?.buttonStatus) {
         localButtonStatus = eventDetails?.buttonStatus
@@ -36,7 +37,6 @@ fun NotificationCard(
     Log.d("NotificationCard", "localButtonStatus: ${localButtonStatus}")
     Log.d("NotificationCard", "Received Notification: ${notification}, ID: ${notification.id}")
     Log.d("NotificationCard", "Received Event: ${eventDetails ?: "No Event"}")
-
 
     Card(
         modifier = Modifier
@@ -88,7 +88,8 @@ fun NotificationCard(
                     text = notification.content,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary,
-                    maxLines = 3
+                    maxLines = if (isExpanded) Int.MAX_VALUE else 3, // ✅ Toggle max lines
+                    modifier = Modifier.clickable { isExpanded = !isExpanded } // ✅ Click to expand/collapse
                 )
             }
 
@@ -100,9 +101,7 @@ fun NotificationCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Button(
-                            onClick = {
-                                onAdd()
-                            },
+                            onClick = { onAdd() },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(8.dp)
