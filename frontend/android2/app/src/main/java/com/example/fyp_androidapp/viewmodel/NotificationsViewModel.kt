@@ -72,9 +72,6 @@ class NotificationsViewModel(
         }
     }
 
-
-
-
     fun discardEvent(notificationId: String) {
         viewModelScope.launch {
             val updatedEvent = eventsRepository.discardEvent(notificationId)?.copy(buttonStatus = 2) // 🔥 Ensure status is set

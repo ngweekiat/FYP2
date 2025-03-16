@@ -16,6 +16,9 @@ import com.example.fyp_androidapp.ui.components.NotificationCard
 import com.example.fyp_androidapp.viewmodel.NotificationsViewModel
 import kotlinx.coroutines.flow.debounce
 import android.util.Log
+import com.example.fyp_androidapp.utils.DateUtils.formatDate
+import com.example.fyp_androidapp.utils.DateUtils.formatTimestampToSGT
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,6 +80,10 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = androidx.lifecycle.v
                         },
                         onDiscard = {
                             viewModel.discardEvent(notification.id)
+                        },
+                        onLongPress = {  // ✅ Trigger dialog on long press
+                            selectedNotification = notification
+                            showDialog = true
                         }
                     )
                     Divider(

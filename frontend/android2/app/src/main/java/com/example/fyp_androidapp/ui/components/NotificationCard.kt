@@ -13,14 +13,18 @@ import com.example.fyp_androidapp.data.models.Notification
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
+import com.example.fyp_androidapp.utils.DateUtils
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+
 
 @Composable
 fun NotificationCard(
     notification: Notification,
     eventDetails: EventDetails?,
     onAdd: () -> Unit,
-    onDiscard: () -> Unit
+    onDiscard: () -> Unit,
+    onLongPress: () -> Unit
 ) {
     var localButtonStatus by remember { mutableStateOf(eventDetails?.buttonStatus) }
 
@@ -37,7 +41,15 @@ fun NotificationCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 0.dp),
+            .padding(horizontal = 0.dp)
+            .pointerInput(Unit) {  // ✅ Detect long press
+                detectTapGestures(
+                    onLongPress = {
+                        Log.d("NotificationCard", "Long Press Detected for ID: ${notification.id}")
+                        onLongPress()
+                    }
+                )
+            },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -129,7 +141,7 @@ fun NotificationCard(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "${eventDetails?.startDate ?: ""}, ${eventDetails?.startTime ?: ""}",
+                                text = eventDetails?.let { DateUtils.formatDate(it.startDate, it.startTime) } ?: "No Date",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary
                             )
