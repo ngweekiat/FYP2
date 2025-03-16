@@ -43,7 +43,7 @@ fun MainApp() {
         ) {
             composable("notifications") { NotificationsScreen() }
             composable("calendar") { CalendarScreen() }
-            composable("settings") {  }
+            composable("settings") { SettingsScreen() }
         }
     }
 }
