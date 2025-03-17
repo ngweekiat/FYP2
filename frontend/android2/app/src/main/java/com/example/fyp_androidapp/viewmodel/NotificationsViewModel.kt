@@ -63,6 +63,9 @@ class NotificationsViewModel(
 
     fun addEvent(notificationId: String, newEventDetails: EventDetails) {
         viewModelScope.launch {
+            // Send the event to google calendar
+            googleCalendarApiRepository.addEventToGoogleCalendar(newEventDetails)
+            
             // Update UI immediately
             val newEvent = newEventDetails.copy(buttonStatus = 1) // ✅ Ensure buttonStatus is set
             Log.d("EventDetails", newEventDetails.toString())
@@ -83,10 +86,6 @@ class NotificationsViewModel(
 
             // Add event to the calendar
             eventsRepository.addEventToCalendar(notificationId, newEvent)
-
-            // Send the event to google calendar
-            val eventAdded = googleCalendarApiRepository.addEventToGoogleCalendar(newEventDetails)
-
         }
     }
 

@@ -13,6 +13,8 @@ const { addEvent } = require('../config/googleCalendar');
  */
 router.post('/add-event', async (req, res) => {
     const { eventDetails } = req.body;
+    console.log("Received Event Details:", eventDetails);
+
 
     if (!eventDetails || !eventDetails.id || !eventDetails.title || !eventDetails.startDate || !eventDetails.startTime) {
         return res.status(400).json({ error: 'Missing required fields in eventDetails' });
@@ -23,11 +25,26 @@ router.post('/add-event', async (req, res) => {
         const listUsersResult = await admin.auth().listUsers(1000); // Fetch first 1000 users
         const authenticatedUsers = listUsersResult.users.map(user => user.uid);
 
-        // Constructing DateTime strings
-        const startDateTime = `${eventDetails.startDate}T${eventDetails.startTime}:00Z`;
+        const moment = require('moment-timezone'); // Import moment-timezone
+
+        // Constructing DateTime strings with correct timezone
+        const startDateTime = moment.tz(
+            `${eventDetails.startDate} ${eventDetails.startTime}`, 
+            'YYYY-MM-DD HH:mm',
+            'Asia/Singapore'
+        ).toISOString();
+        
         const endDateTime = eventDetails.endDate && eventDetails.endTime
-            ? `${eventDetails.endDate}T${eventDetails.endTime}:00Z`
-            : `${eventDetails.startDate}T${eventDetails.startTime}:00Z`;
+            ? moment.tz(
+                `${eventDetails.endDate} ${eventDetails.endTime}`, 
+                'YYYY-MM-DD HH:mm',
+                'Asia/Singapore'
+            ).toISOString()
+            : moment.tz(
+                `${eventDetails.startDate} ${eventDetails.startTime}`, 
+                'YYYY-MM-DD HH:mm',
+                'Asia/Singapore'
+            ).add(1, 'hour').toISOString(); // Default to 1 hour duration if end time is missing
 
         const eventPayload = {
             summary: eventDetails.title,
