@@ -58,4 +58,35 @@ class GoogleCalendarApiRepository {
             }
         }
     }
+
+    suspend fun deleteEventFromGoogleCalendar(eventId: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = "$backendUrl/delete-event"
+
+                val requestBody = JSONObject().apply {
+                    put("eventId", eventId)
+                }.toString()
+
+                val request = Request.Builder()
+                    .url(url)
+                    .delete(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                    .build()
+
+                val response = client.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    Log.d("GoogleCalendarApiRepo", "Event deleted successfully")
+                    return@withContext true
+                } else {
+                    Log.e("GoogleCalendarApiRepo", "Failed to delete event: ${response.message}")
+                    return@withContext false
+                }
+            } catch (e: Exception) {
+                Log.e("GoogleCalendarApiRepo", "Error deleting event", e)
+                return@withContext false
+            }
+        }
+    }
+
 }

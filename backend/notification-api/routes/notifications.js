@@ -270,6 +270,39 @@ router.get('/calendar_events', async (req, res) => {
     }
 });
 
+/**
+ * PATCH: Update notification importance by ID.
+ */
+router.patch('/:id/updateImportance', async (req, res) => {
+    const notificationId = req.params.id;
+    const { notification_importance } = req.body;
+
+    if (typeof notification_importance !== 'number') {
+        return res.status(400).json({ message: 'Invalid or missing notification_importance' });
+    }
+
+    try {
+        // Find the notification document in Firestore
+        const snapshot = await db.collection('notifications').where('id', '==', notificationId).get();
+
+        if (snapshot.empty) {
+            return res.status(404).json({ message: 'Notification not found', id: notificationId });
+        }
+
+        // Update the notification importance
+        const doc = snapshot.docs[0];
+        await db.collection('notifications').doc(doc.id).update({ notification_importance });
+
+        res.status(200).json({
+            message: 'Notification importance updated successfully',
+            notificationId,
+            notification_importance,
+        });
+    } catch (error) {
+        console.error('Error updating notification importance:', error);
+        res.status(500).json({ message: 'Failed to update notification importance', error: error.message });
+    }
+});
 
 
 /**

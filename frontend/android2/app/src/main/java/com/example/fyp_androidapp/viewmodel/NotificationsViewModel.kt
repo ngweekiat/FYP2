@@ -63,6 +63,8 @@ class NotificationsViewModel(
 
     fun addEvent(notificationId: String, newEventDetails: EventDetails) {
         viewModelScope.launch {
+            Log.d("EventDetails", newEventDetails.toString())
+
             // Send the event to google calendar
             val success = googleCalendarApiRepository.upsertEventToGoogleCalendar(notificationId, newEventDetails)
 
@@ -90,17 +92,39 @@ class NotificationsViewModel(
     }
 
 
-
-    fun discardEvent(notificationId: String) {
+    fun discardEvent(notificationId: String, discardedEventDetails: EventDetails) {
         viewModelScope.launch {
-            val updatedEvent = eventsRepository.discardEvent(notificationId)?.copy(buttonStatus = 2) // 🔥 Ensure status is set
-            if (updatedEvent != null) {
-                // Force a new instance to trigger recomposition
+            Log.d("EventDetails", "Discarding event: $discardedEventDetails")
+
+            // Call backend API to delete event from Google Calendar
+            val success = googleCalendarApiRepository.deleteEventFromGoogleCalendar(notificationId)
+
+            if (success) {
+                Log.d("NotificationsViewModel", "Event successfully deleted from Google Calendar")
+
+                // Update event details in the local state
+                val updatedEvent = discardedEventDetails.copy(buttonStatus = 2) // ✅ Mark as discarded
+
+                // Ensure reactivity by updating the state properly
                 val newMap = _calendarEvents.value.toMutableMap().apply {
                     put(notificationId, updatedEvent)
                 }
-                _calendarEvents.value = newMap.toMap() // Ensure it's a new object
-                //                Log.d("ViewModel", "Event Discarded for Notification ID: $notificationId")
+                _calendarEvents.value = newMap.toMap() // ✅ Ensure reactivity
+
+                // Update notification importance locally
+                _notifications.value = _notifications.value.map {
+                    if (it.id == notificationId) it.copy(isImportant = true) else it
+                }
+
+                // Send update to backend
+                notificationsRepository.updateNotificationImportance(notificationId, 1)
+
+                // Remove event from the local database
+                eventsRepository.discardEvent(notificationId)
+
+                Log.d("NotificationsViewModel", "Event Discarded for Notification ID: $notificationId")
+            } else {
+                Log.e("NotificationsViewModel", "Failed to delete event from Google Calendar")
             }
         }
     }

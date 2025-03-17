@@ -109,6 +109,37 @@ async function upsertEvent(userId, eventId, eventDetails) {
     }
 }
 
+/**
+ * Deletes an event from a user's Google Calendar.
+ */
+async function deleteEvent(userId, eventId) {
+    try {
+        const accessToken = await getUserToken(userId);
+        oAuth2Client.setCredentials({ access_token: accessToken });
 
-module.exports = { upsertEvent };
+        const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+
+        console.log(`Attempting to delete event: ${eventId} for user ${userId}`);
+
+        await calendar.events.delete({
+            calendarId: 'primary',
+            eventId: eventId,
+        });
+
+        console.log(`Event deleted successfully for user: ${userId}`);
+        return { success: true, message: `Event ${eventId} deleted successfully.` };
+    } catch (error) {
+        console.error(`Failed to delete event: ${eventId} - Error Code: ${error.code}`);
+        
+        if (error.code === 404) {
+            return { success: false, message: `Event ${eventId} not found.` };
+        }
+        
+        throw error;
+    }
+}
+
+
+
+module.exports = { upsertEvent, deleteEvent};
 

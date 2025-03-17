@@ -2,6 +2,7 @@ const admin = require('firebase-admin'); // Import Firebase Admin SDK
 const express = require('express');
 const router = express.Router();
 const { upsertEvent } = require('../config/googleCalendar');
+const { deleteEvent } = require('../config/googleCalendar');
 const moment = require('moment-timezone');
 
 /**
@@ -70,22 +71,44 @@ router.put('/upsert-event', async (req, res) => {
 
 
 
-/**
- * Route: DELETE /remove-event
- * Removes an event from a user's Google Calendar.
- */
-router.delete('/remove-event', async (req, res) => {
-    const { userId, eventId } = req.body;
 
-    if (!userId || !eventId) {
-        return res.status(400).json({ error: 'Missing required userId or eventId' });
+/**
+ * Route: DELETE /delete-event
+ * Deletes an event from all authenticated users' Google Calendars.
+ */
+router.delete('/delete-event', async (req, res) => {
+    console.log('Received DELETE request:', req.body); // ✅ Log request body
+
+    const { eventId } = req.body;
+
+    if (!eventId) {
+        return res.status(400).json({ error: 'Missing required eventId' });
     }
 
     try {
-        const response = await removeEvent(userId, eventId);
-        res.status(200).json(response);
+        // Fetch authenticated users
+        const listUsersResult = await admin.auth().listUsers(1000);
+        const authenticatedUsers = listUsersResult.users.map(user => user.uid);
+
+        let successCount = 0;
+        let notFoundCount = 0;
+
+        for (const userId of authenticatedUsers) {
+            const response = await deleteEvent(userId, eventId);
+            if (response.success) {
+                successCount++;
+            } else {
+                notFoundCount++;
+            }
+        }
+
+        res.status(200).json({
+            message: `Event deleted for ${successCount} users. Not found for ${notFoundCount} users.`,
+        });
+
     } catch (error) {
-        res.status(500).json({ error: 'Failed to delete event', details: error.message });
+        console.error('Error in delete-event:', error);
+        res.status(500).json({ error: 'Failed to delete event for all users', details: error.message });
     }
 });
 

@@ -76,7 +76,8 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
                             showDialog = true
                         },
                         onDiscard = {
-                            viewModel.discardEvent(notification.id)
+                            val eventDetails = calendarEvents[notification.id] ?: EventDetails()
+                            viewModel.discardEvent(notification.id, eventDetails)
                         },
                         onLongPress = {  // ✅ Trigger dialog on long press
                             selectedNotification = notification
@@ -116,7 +117,11 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
                 showDialog = false  // ✅ Close dialog
             },
             onDismiss = { showDialog = false },
-            onDiscard = {}
+            onDiscard = { notificationId ->
+                val eventDetails = calendarEvents[notificationId] ?: EventDetails()
+                viewModel.discardEvent(notificationId, eventDetails)
+                showDialog = false
+            }
         )
     }
 }

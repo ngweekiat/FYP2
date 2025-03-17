@@ -41,7 +41,7 @@ class NotificationsRepository {
 
                 val request = Request.Builder()
                     .url(url)
-                    .put(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                    .patch(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
                     .build()
 
                 val response = client.newCall(request).execute()
