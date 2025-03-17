@@ -29,6 +29,7 @@ fun EventPopupDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    var id by remember { mutableStateOf(TextFieldValue(eventDetails.id)) }
     var title by remember { mutableStateOf(TextFieldValue(eventDetails.title)) }
     var description by remember { mutableStateOf(TextFieldValue(eventDetails.description)) }
     var allDay by remember { mutableStateOf(eventDetails.allDay) }

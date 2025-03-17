@@ -30,6 +30,7 @@ class EventsRepository {
                     val json = JSONObject(responseBody).optJSONObject("event") ?: return@withContext null
 
                     val event = EventDetails(
+                        id = json.optString("id", "No id"),
                         title = json.optString("title", "No Title"),
                         description = json.optString("description", "No Description"),
                         locationOrMeeting = json.optString("location", "Unknown Location"),
