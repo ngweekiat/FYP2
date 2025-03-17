@@ -31,6 +31,13 @@ class NotificationListener : NotificationListenerService() {
     private val BACKEND_URL = "${Constants.BASE_URL}/notifications"
     private val client = OkHttpClient()
 
+    override fun onCreate() {
+        super.onCreate()
+        Log.d(TAG, "🚀 NotificationListener service created")
+    }
+
+
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
 

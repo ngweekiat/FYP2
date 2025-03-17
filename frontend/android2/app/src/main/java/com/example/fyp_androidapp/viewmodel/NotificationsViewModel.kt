@@ -62,6 +62,7 @@ class NotificationsViewModel(
         viewModelScope.launch {
             // Update UI immediately
             val newEvent = newEventDetails.copy(buttonStatus = 1) // ✅ Ensure buttonStatus is set
+            Log.d("EventDetails", newEventDetails.toString())
 
             // Force recomposition by creating a new map instance
             val newMap = _calendarEvents.value.toMutableMap().apply {

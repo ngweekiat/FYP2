@@ -1,3 +1,4 @@
+const axios = require('axios');
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db'); // Firebase Firestore instance
@@ -27,10 +28,31 @@ router.post('/save-user', async (req, res) => {
         });
     }
 
-    const { uid, email, displayName = "" } = req.body;
+    const { uid, email, displayName = "", authCode } = req.body;
 
     try {
-        // Store user details in Firestore (no need to handle token here)
+        let refreshToken = null;
+        let accessToken = null;
+        let tokenExpiry = null;
+
+        // If authCode is provided, exchange it for tokens
+        if (authCode) {
+            const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', null, {
+                params: {
+                    client_id: process.env.GOOGLE_CLIENT_ID,
+                    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+                    code: authCode,
+                    grant_type: 'authorization_code',
+                    redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+                }
+            });
+
+            accessToken = tokenResponse.data.access_token;
+            refreshToken = tokenResponse.data.refresh_token || null;
+            tokenExpiry = Date.now() + tokenResponse.data.expires_in * 1000;
+        }
+
+        // Store user details in Firestore
         const userRef = db.collection('users').doc(uid);
         await userRef.set(
             {
@@ -38,6 +60,9 @@ router.post('/save-user', async (req, res) => {
                 email,
                 displayName: displayName || "Unknown",
                 lastLogin: new Date().toISOString(),
+                accessToken,
+                refreshToken, // Store refresh token
+                tokenExpiry
             },
             { merge: true }
         );

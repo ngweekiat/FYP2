@@ -7,6 +7,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -67,12 +69,16 @@ class AuthRepository {
             .post(requestBody)
             .build()
 
+        // Use withContext to move network call to background thread
         try {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    Log.e("sendTokenToBackend", "Failed to send token: ${response.code} - ${response.message}")
-                } else {
-                    Log.d("sendTokenToBackend", "Token sent successfully: ${response.code}")
+            // Make sure the network operation runs in the background
+            GlobalScope.launch(Dispatchers.IO) {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        Log.e("sendTokenToBackend", "Failed to send token: ${response.code} - ${response.message}")
+                    } else {
+                        Log.d("sendTokenToBackend", "Token sent successfully: ${response.code}")
+                    }
                 }
             }
         } catch (e: Exception) {

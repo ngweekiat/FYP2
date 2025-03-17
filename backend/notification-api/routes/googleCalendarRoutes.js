@@ -22,4 +22,24 @@ router.post('/add-event', async (req, res) => {
     }
 });
 
+/**
+ * Route: DELETE /remove-event
+ * Removes an event from a user's Google Calendar.
+ */
+router.delete('/remove-event', async (req, res) => {
+    const { userId, eventId } = req.body;
+
+    if (!userId || !eventId) {
+        return res.status(400).json({ error: 'Missing required userId or eventId' });
+    }
+
+    try {
+        const response = await removeEvent(userId, eventId);
+        res.status(200).json(response);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete event', details: error.message });
+    }
+});
+
+
 module.exports = router;
