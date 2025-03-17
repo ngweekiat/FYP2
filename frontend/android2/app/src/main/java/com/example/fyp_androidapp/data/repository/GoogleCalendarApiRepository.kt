@@ -16,16 +16,16 @@ class GoogleCalendarApiRepository {
     private val backendUrl = "${Constants.BASE_URL}/google-calendar"
 
     /**
-     * Sends an event to the backend to be added to Google Calendar for all authenticated users.
+     * Creates or updates an event in Google Calendar for all authenticated users.
      */
-    suspend fun addEventToGoogleCalendar(eventDetails: EventDetails): Boolean {
+    suspend fun upsertEventToGoogleCalendar(eventId: String, eventDetails: EventDetails): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                val url = "$backendUrl/add-event"
+                val url = "$backendUrl/upsert-event"
 
                 val requestBody = JSONObject().apply {
+                    put("eventId", eventId)
                     put("eventDetails", JSONObject().apply {
-                        put("id", eventDetails.id)
                         put("title", eventDetails.title)
                         put("startDate", eventDetails.startDate)
                         put("startTime", eventDetails.startTime)
@@ -36,22 +36,24 @@ class GoogleCalendarApiRepository {
                     })
                 }.toString()
 
+//                Log.d("GoogleCalendarApiRepo", "Sending upsert request: $requestBody")
+
                 val request = Request.Builder()
                     .url(url)
-                    .post(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                    .put(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
                     .build()
 
                 val response = client.newCall(request).execute()
 
                 if (response.isSuccessful) {
-                    Log.d("GoogleCalendarApiRepo", "Event added successfully for all users")
+                    Log.d("GoogleCalendarApiRepo", "Event upserted successfully")
                     return@withContext true
                 } else {
-                    Log.e("GoogleCalendarApiRepo", "Failed to add event: ${response.message}")
+                    Log.e("GoogleCalendarApiRepo", "Failed to upsert event: ${response.message}")
                     return@withContext false
                 }
             } catch (e: Exception) {
-                Log.e("GoogleCalendarApiRepo", "Error adding event", e)
+                Log.e("GoogleCalendarApiRepo", "Error upserting event", e)
                 return@withContext false
             }
         }

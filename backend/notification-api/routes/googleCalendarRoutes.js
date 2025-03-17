@@ -1,22 +1,22 @@
 const admin = require('firebase-admin'); // Import Firebase Admin SDK
 const express = require('express');
 const router = express.Router();
-const { addEvent } = require('../config/googleCalendar');
+const { upsertEvent } = require('../config/googleCalendar');
+const moment = require('moment-timezone');
 
 /**
- * Route: POST /add-event
- * Adds an event to a user's Google Calendar.
+ * Route: PUT /upsert-event
+ * Creates or updates an event for all authenticated users in Google Calendar.
  */
-/**
- * Route: POST /add-event
- * Adds an event to a user's Google Calendar.
- */
-router.post('/add-event', async (req, res) => {
-    const { eventDetails } = req.body;
-    console.log("Received Event Details:", eventDetails);
+router.put('/upsert-event', async (req, res) => {
+    const { eventId, eventDetails } = req.body;
 
+    // ✅ Log the received request payload
+    console.log(`Received upsert request:`);
+    console.log(`eventId: ${eventId}`);
+    console.log(`eventDetails: ${JSON.stringify(eventDetails, null, 2)}`);
 
-    if (!eventDetails || !eventDetails.id || !eventDetails.title || !eventDetails.startDate || !eventDetails.startTime) {
+    if (!eventDetails || !eventDetails.title || !eventDetails.startDate || !eventDetails.startTime) {
         return res.status(400).json({ error: 'Missing required fields in eventDetails' });
     }
 
@@ -25,53 +25,47 @@ router.post('/add-event', async (req, res) => {
         const listUsersResult = await admin.auth().listUsers(1000); // Fetch first 1000 users
         const authenticatedUsers = listUsersResult.users.map(user => user.uid);
 
-        const moment = require('moment-timezone'); // Import moment-timezone
-
-        // Constructing DateTime strings with correct timezone
+        // Construct DateTime strings with correct timezone
         const startDateTime = moment.tz(
-            `${eventDetails.startDate} ${eventDetails.startTime}`, 
+            `${eventDetails.startDate} ${eventDetails.startTime}`,
             'YYYY-MM-DD HH:mm',
             'Asia/Singapore'
         ).toISOString();
-        
+
         const endDateTime = eventDetails.endDate && eventDetails.endTime
             ? moment.tz(
-                `${eventDetails.endDate} ${eventDetails.endTime}`, 
+                `${eventDetails.endDate} ${eventDetails.endTime}`,
                 'YYYY-MM-DD HH:mm',
                 'Asia/Singapore'
             ).toISOString()
-            : moment.tz(
-                `${eventDetails.startDate} ${eventDetails.startTime}`, 
-                'YYYY-MM-DD HH:mm',
-                'Asia/Singapore'
-            ).add(1, 'hour').toISOString(); // Default to 1 hour duration if end time is missing
+            : moment(startDateTime).add(1, 'hour').toISOString(); // Default to 1-hour duration if end time is missing
 
         const eventPayload = {
             summary: eventDetails.title,
             location: eventDetails.locationOrMeeting || '',
             description: eventDetails.description || '',
-            startDateTime: startDateTime,
-            endDateTime: endDateTime,
-            timeZone: 'UTC',
-            attendees: []
+            startDateTime,
+            endDateTime,
+            attendees: eventDetails.attendees || [],
         };
 
-        // Add event for each authenticated user
+        // Upsert event for each authenticated user
         let successCount = 0;
         for (const userId of authenticatedUsers) {
-            await addEvent(userId, eventPayload);
+            await upsertEvent(userId, eventId, eventPayload);
             successCount++;
         }
 
-        res.status(201).json({ 
-            message: `Event created successfully for ${successCount} users` 
+        res.status(200).json({
+            message: `Event added/updated successfully for ${successCount} users`
         });
 
     } catch (error) {
-        console.error('Error in add-event:', error);
-        res.status(500).json({ error: 'Failed to create event for all users', details: error.message });
+        console.error('Error in upsert-event:', error);
+        res.status(500).json({ error: 'Failed to add/update event for all users', details: error.message });
     }
 });
+
 
 
 

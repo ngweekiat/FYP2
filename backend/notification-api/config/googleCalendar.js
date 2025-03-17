@@ -28,16 +28,16 @@ async function getUserToken(userId) {
         // Check if access token is expired
         if (Date.now() > userData.tokenExpiry) {
             console.log(`Refreshing token for user: ${userId}`);
-            
-            const { tokens } = await oAuth2Client.refreshToken(userData.refreshToken);
+
+            const { credentials } = await oAuth2Client.refreshAccessToken();
 
             // Update Firestore with the new tokens
             await userRef.update({
-                accessToken: tokens.access_token,
-                tokenExpiry: Date.now() + (tokens.expiry_date || 3600 * 1000)
+                accessToken: credentials.access_token,
+                tokenExpiry: Date.now() + (credentials.expiry_date || 3600 * 1000)
             });
 
-            return tokens.access_token;
+            return credentials.access_token;
         }
 
         return userData.accessToken;
@@ -47,15 +47,15 @@ async function getUserToken(userId) {
     }
 }
 
-/**
- * Adds an event to the user's Google Calendar with Singapore timezone (Asia/Singapore).
- */
-async function addEvent(userId, eventDetails) {
+
+async function upsertEvent(userId, eventId, eventDetails) {
     try {
         const accessToken = await getUserToken(userId);
         oAuth2Client.setCredentials({ access_token: accessToken });
 
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+
+        console.log(`Attempting to upsert event: ${eventId} for user ${userId}`);
 
         const event = {
             summary: eventDetails.summary,
@@ -63,26 +63,52 @@ async function addEvent(userId, eventDetails) {
             description: eventDetails.description || '',
             start: {
                 dateTime: eventDetails.startDateTime,
-                timeZone: 'Asia/Singapore', // ✅ Set to Singapore timezone
+                timeZone: 'Asia/Singapore',
             },
             end: {
                 dateTime: eventDetails.endDateTime,
-                timeZone: 'Asia/Singapore', // ✅ Set to Singapore timezone
+                timeZone: 'Asia/Singapore',
             },
             attendees: eventDetails.attendees || [],
         };
 
-        const response = await calendar.events.insert({
-            calendarId: 'primary',
-            resource: event,
-        });
+        try {
+            // ✅ Attempt to update existing event
+            const response = await calendar.events.update({
+                calendarId: 'primary',
+                eventId: eventId, // ✅ Ensure eventId is correctly passed
+                resource: event,
+            });
 
-        console.log('Event created:', response.data);
-        return response.data;
+            console.log(`Event updated successfully: ${response.data.id}`);
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to update event: ${eventId} - Error Code: ${error.code}`);
+
+            if (error.code === 404) {
+                // ✅ If event not found, create it using the same eventId
+                console.log(`Event not found (404). Creating new event for user: ${userId}`);
+
+                const newEventResponse = await calendar.events.insert({
+                    calendarId: 'primary',
+                    resource: {
+                        ...event,
+                        id: eventId // ✅ Ensure new event uses the same eventId
+                    },
+                });
+
+                console.log('New event created:', newEventResponse.data.id);
+                return newEventResponse.data;
+            }
+
+            throw error;
+        }
     } catch (error) {
-        console.error('Error creating event:', error.message);
-        throw new Error('Failed to create Google Calendar event.');
+        console.error('Error in upsertEvent:', error.message);
+        throw new Error('Failed to add/update Google Calendar event.');
     }
 }
 
-module.exports = { addEvent };
+
+module.exports = { upsertEvent };
+
