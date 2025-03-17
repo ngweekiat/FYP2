@@ -158,7 +158,12 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                 viewModel.hideEventPopup()  // ✅ Hide popup after saving
             },
             onDismiss = { viewModel.hideEventPopup() },
-            onDiscard = {}
+            onDiscard = {
+                selectedEventDetails.id?.let { eventId ->
+                    viewModel.discardEvent(eventId, selectedEventDetails.startDate)
+                }
+                viewModel.hideEventPopup()
+            }
         )
     }
 }

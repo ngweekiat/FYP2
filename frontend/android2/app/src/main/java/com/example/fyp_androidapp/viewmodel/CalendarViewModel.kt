@@ -1,11 +1,13 @@
 package com.example.fyp_androidapp.viewmodel
 
+import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fyp_androidapp.data.models.EventDetails
 import com.example.fyp_androidapp.data.repository.CalendarRepository
 import com.example.fyp_androidapp.data.repository.EventsRepository
+import com.example.fyp_androidapp.data.repository.GoogleCalendarApiRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -13,7 +15,8 @@ import kotlinx.datetime.LocalDate
 
 class CalendarViewModel(
     private val calendarRepository: CalendarRepository = CalendarRepository(),
-    private val eventsRepository: EventsRepository = EventsRepository() // ✅ Now correctly assigned
+    private val eventsRepository: EventsRepository = EventsRepository(),
+    private val googleCalendarApiRepository: GoogleCalendarApiRepository = GoogleCalendarApiRepository() // ✅ Inject GoogleCalendarApiRepository
 ) : ViewModel() {
 
     private val _events = MutableStateFlow<Map<LocalDate, List<EventDetails>>>(emptyMap())
@@ -79,6 +82,10 @@ class CalendarViewModel(
 
                 val success = eventsRepository.updateEvent(updatedEvent.id, updatedEvent)
 
+                // Update to google
+                googleCalendarApiRepository.upsertEventToGoogleCalendar(updatedEvent.id, updatedEvent)
+                fetchEventsForMonth(eventDate.year, eventDate.monthNumber)
+
                 if (!success) {
                     Log.e("CalendarViewModel", "Failed to update event on backend: $updatedEvent")
                 } else {
@@ -90,4 +97,47 @@ class CalendarViewModel(
             }
         }
     }
+
+    fun discardEvent(eventId: String, eventDate: String) {
+        viewModelScope.launch {
+            Log.d("CalendarViewModel", "Discarding event: $eventId")
+
+            // Call backend API to delete event from Google Calendar
+            val success = googleCalendarApiRepository.deleteEventFromGoogleCalendar(eventId)
+
+            if (success) {
+                Log.d("CalendarViewModel", "Event successfully deleted from Google Calendar")
+
+                // Convert eventDate to LocalDate for map lookup
+                val eventLocalDate = try {
+                    LocalDate.parse(eventDate)
+                } catch (e: Exception) {
+                    Log.e("CalendarViewModel", "Invalid event start date: $eventDate")
+                    return@launch
+                }
+
+                // Update local state: Remove the discarded event from _events map
+                val updatedEvents = _events.value.toMutableMap()
+                val eventList = updatedEvents[eventLocalDate]?.toMutableList() ?: mutableListOf()
+
+                val eventIndex = eventList.indexOfFirst { it.id == eventId }
+                if (eventIndex != -1) {
+                    val discardedEvent = eventList[eventIndex].copy(buttonStatus = 2) // ✅ Mark as discarded
+                    eventList[eventIndex] = discardedEvent
+                    updatedEvents[eventLocalDate] = eventList.toList() // ✅ Force recomposition
+                    _events.value = updatedEvents.toMap()
+                }
+
+                // Notify backend to update event status
+                eventsRepository.discardEvent(eventId)
+
+                fetchEventsForMonth(eventLocalDate.year, eventLocalDate.monthNumber) // 🔄 Refresh after discard
+
+                Log.d("CalendarViewModel", "Event discarded: $eventId")
+            } else {
+                Log.e("CalendarViewModel", "Failed to delete event from Google Calendar")
+            }
+        }
+    }
+
 }
