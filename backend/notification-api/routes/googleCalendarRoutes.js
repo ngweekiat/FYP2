@@ -1,3 +1,4 @@
+const admin = require('firebase-admin'); // Import Firebase Admin SDK
 const express = require('express');
 const router = express.Router();
 const { addEvent } = require('../config/googleCalendar');
@@ -11,18 +12,22 @@ const { addEvent } = require('../config/googleCalendar');
  * Adds an event to a user's Google Calendar.
  */
 router.post('/add-event', async (req, res) => {
-    const { userId, eventDetails } = req.body;
+    const { eventDetails } = req.body;
 
-    if (!userId || !eventDetails || !eventDetails.id || !eventDetails.title || !eventDetails.startDate || !eventDetails.startTime) {
+    if (!eventDetails || !eventDetails.id || !eventDetails.title || !eventDetails.startDate || !eventDetails.startTime) {
         return res.status(400).json({ error: 'Missing required fields in eventDetails' });
     }
 
     try {
+        // Fetch the list of authenticated users
+        const listUsersResult = await admin.auth().listUsers(1000); // Fetch first 1000 users
+        const authenticatedUsers = listUsersResult.users.map(user => user.uid);
+
         // Constructing DateTime strings
         const startDateTime = `${eventDetails.startDate}T${eventDetails.startTime}:00Z`;
-        const endDateTime = eventDetails.endDate && eventDetails.endTime 
-            ? `${eventDetails.endDate}T${eventDetails.endTime}:00Z` 
-            : `${eventDetails.startDate}T${eventDetails.startTime}:00Z`; // Default to same time if end time is missing
+        const endDateTime = eventDetails.endDate && eventDetails.endTime
+            ? `${eventDetails.endDate}T${eventDetails.endTime}:00Z`
+            : `${eventDetails.startDate}T${eventDetails.startTime}:00Z`;
 
         const eventPayload = {
             summary: eventDetails.title,
@@ -30,16 +35,30 @@ router.post('/add-event', async (req, res) => {
             description: eventDetails.description || '',
             startDateTime: startDateTime,
             endDateTime: endDateTime,
-            timeZone: 'UTC', // Adjust time zone as necessary
-            attendees: [] // Add attendee processing if needed
+            timeZone: 'UTC',
+            attendees: []
         };
 
-        const event = await addEvent(userId, eventPayload);
-        res.status(201).json({ message: 'Event created successfully', event });
+        // Add event for each authenticated user
+        let successCount = 0;
+        for (const userId of authenticatedUsers) {
+            await addEvent(userId, eventPayload);
+            successCount++;
+        }
+
+        res.status(201).json({ 
+            message: `Event created successfully for ${successCount} users` 
+        });
+
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create event', details: error.message });
+        console.error('Error in add-event:', error);
+        res.status(500).json({ error: 'Failed to create event for all users', details: error.message });
     }
 });
+
+
+
+
 /**
  * Route: DELETE /remove-event
  * Removes an event from a user's Google Calendar.

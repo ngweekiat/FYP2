@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fyp_androidapp.data.models.EventDetails
 import com.example.fyp_androidapp.data.models.Notification
 import com.example.fyp_androidapp.data.repository.EventsRepository
+import com.example.fyp_androidapp.data.repository.GoogleCalendarApiRepository
 import com.example.fyp_androidapp.data.repository.NotificationsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,9 @@ import kotlinx.coroutines.launch
 
 class NotificationsViewModel(
     private val notificationsRepository: NotificationsRepository = NotificationsRepository(),
-    private val eventsRepository: EventsRepository = EventsRepository()
+    private val eventsRepository: EventsRepository = EventsRepository(),
+    private val googleCalendarApiRepository: GoogleCalendarApiRepository = GoogleCalendarApiRepository() // ✅ Inject GoogleCalendarApiRepository
+
 ) : ViewModel() {
 
     private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
@@ -80,6 +83,10 @@ class NotificationsViewModel(
 
             // Add event to the calendar
             eventsRepository.addEventToCalendar(notificationId, newEvent)
+
+            // Send the event to google calendar
+            val eventAdded = googleCalendarApiRepository.addEventToGoogleCalendar(newEventDetails)
+
         }
     }
 

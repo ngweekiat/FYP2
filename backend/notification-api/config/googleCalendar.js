@@ -48,7 +48,7 @@ async function getUserToken(userId) {
 }
 
 /**
- * Adds an event to the user's Google Calendar.
+ * Adds an event to the user's Google Calendar with Singapore timezone (Asia/Singapore).
  */
 async function addEvent(userId, eventDetails) {
     try {
@@ -63,11 +63,11 @@ async function addEvent(userId, eventDetails) {
             description: eventDetails.description || '',
             start: {
                 dateTime: eventDetails.startDateTime,
-                timeZone: eventDetails.timeZone || 'UTC',
+                timeZone: 'Asia/Singapore', // ✅ Set to Singapore timezone
             },
             end: {
                 dateTime: eventDetails.endDateTime,
-                timeZone: eventDetails.timeZone || 'UTC',
+                timeZone: 'Asia/Singapore', // ✅ Set to Singapore timezone
             },
             attendees: eventDetails.attendees || [],
         };
