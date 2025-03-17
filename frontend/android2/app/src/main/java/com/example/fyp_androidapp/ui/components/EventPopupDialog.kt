@@ -26,6 +26,7 @@ import java.time.LocalDate
 fun EventPopupDialog(
     eventDetails: EventDetails = EventDetails(),
     onSave: (EventDetails) -> Unit,
+    onDiscard: (String) -> Unit, // ✅ New parameter for discarding event
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -121,8 +122,7 @@ fun EventPopupDialog(
                                 DatePickerDialog(
                                     context,
                                     { _, year, month, dayOfMonth ->
-                                        val localDate = LocalDate.of(year, month + 1, dayOfMonth)
-                                        startDate = TextFieldValue(localDate.format(DateTimeFormatter.ISO_DATE)) // Stores as yyyy-MM-dd
+                                        startDate = TextFieldValue("${dayOfMonth.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year")
                                     },
                                     calendar.get(Calendar.YEAR),
                                     calendar.get(Calendar.MONTH),
@@ -148,8 +148,7 @@ fun EventPopupDialog(
                                 DatePickerDialog(
                                     context,
                                     { _, year, month, dayOfMonth ->
-                                        val localDate = LocalDate.of(year, month + 1, dayOfMonth)
-                                        endDate = TextFieldValue(localDate.format(DateTimeFormatter.ISO_DATE)) // Stores as yyyy-MM-dd
+                                        endDate = TextFieldValue("${dayOfMonth.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year")
                                     },
                                     calendar.get(Calendar.YEAR),
                                     calendar.get(Calendar.MONTH),
@@ -171,10 +170,32 @@ fun EventPopupDialog(
                         )
                     }
                 }
+
+
+
+                // ✅ Add Discard Button
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Discard Button
+                    TextButton(
+                        onClick = {
+                            onDiscard(eventDetails.id) // ✅ Call discard function
+                            onDismiss() // ✅ Close dialog
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Discard", color = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
     }
 }
+
 
 // Title Section
 @Composable

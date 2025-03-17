@@ -19,7 +19,7 @@ import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationsScreen(viewModel: NotificationsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()){
+fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
     val notifications by viewModel.notifications.collectAsState()
     val calendarEvents by viewModel.calendarEvents.collectAsState() // ✅ Observe event details from ViewModel
     LaunchedEffect(calendarEvents) {
@@ -105,11 +105,18 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = androidx.lifecycle.v
         EventPopupDialog(
             eventDetails = calendarEvents[selectedNotification!!.id] ?: EventDetails(),
             onSave = { newEventDetails ->
-                Log.d("NotificationScreen", "Saving Event: $newEventDetails for Notification ID: ${selectedNotification!!.id}")
-                viewModel.addEvent(selectedNotification!!.id, newEventDetails) // ✅ Pass event details for instant update
+                Log.d(
+                    "NotificationScreen",
+                    "Saving Event: $newEventDetails for Notification ID: ${selectedNotification!!.id}"
+                )
+                viewModel.addEvent(
+                    selectedNotification!!.id,
+                    newEventDetails
+                ) // ✅ Pass event details for instant update
                 showDialog = false  // ✅ Close dialog
             },
-            onDismiss = { showDialog = false }
+            onDismiss = { showDialog = false },
+            onDiscard = {}
         )
     }
 }
