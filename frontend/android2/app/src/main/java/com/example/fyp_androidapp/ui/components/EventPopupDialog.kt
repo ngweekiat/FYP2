@@ -122,7 +122,9 @@ fun EventPopupDialog(
                                 DatePickerDialog(
                                     context,
                                     { _, year, month, dayOfMonth ->
-                                        startDate = TextFieldValue("${dayOfMonth.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year")
+                                        val selectedDate = LocalDate.of(year, month + 1, dayOfMonth) // Month is 0-based
+                                        val formattedDate = selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE) // Formats to YYYY-MM-DD
+                                        startDate = TextFieldValue(formattedDate)
                                     },
                                     calendar.get(Calendar.YEAR),
                                     calendar.get(Calendar.MONTH),
@@ -148,7 +150,9 @@ fun EventPopupDialog(
                                 DatePickerDialog(
                                     context,
                                     { _, year, month, dayOfMonth ->
-                                        endDate = TextFieldValue("${dayOfMonth.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year")
+                                        val selectedDate = LocalDate.of(year, month + 1, dayOfMonth) // Month is 0-based
+                                        val formattedDate = selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE) // Formats to YYYY-MM-DD
+                                        endDate = TextFieldValue(formattedDate)
                                     },
                                     calendar.get(Calendar.YEAR),
                                     calendar.get(Calendar.MONTH),
