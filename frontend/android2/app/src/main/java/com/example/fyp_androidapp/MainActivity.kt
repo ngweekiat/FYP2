@@ -7,12 +7,12 @@ import androidx.core.view.WindowCompat
 import android.view.View
 import com.example.fyp_androidapp.ui.MainApp
 import com.example.fyp_androidapp.ui.theme.FYP_AndroidAppTheme
+import com.example.fyp_androidapp.viewmodel.AuthViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Enable immersive mode
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.systemUiVisibility = (
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -24,8 +24,9 @@ class MainActivity : ComponentActivity() {
                 )
 
         setContent {
+            val authViewModel = AuthViewModel() // Initialize the ViewModel
             FYP_AndroidAppTheme {
-                MainApp() // Only reference MainApp.kt instead of defining it again
+                MainApp(authViewModel) // Pass ViewModel to MainApp
             }
         }
     }
