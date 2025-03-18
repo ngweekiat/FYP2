@@ -1,19 +1,17 @@
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Home, Bell, Calendar, Settings, Plus, User } from "lucide-react"; // Icons
+import { Home, Bell, Calendar, Settings, Plus, User } from "lucide-react";
+import { useAuth } from "../utils/AuthContext";
 
 export default function Layout({ children }) {
   const router = useRouter();
+  const { users, handleSignIn } = useAuth();
 
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="bg-blue-500 text-white w-16 flex flex-col items-center py-4 space-y-6 relative">
-        {/* User Avatar/Icon */}
-        <div className="bg-blue-700 p-2 rounded-full">
-          <span className="font-bold text-xl">A</span> {/* Placeholder for profile */}
-        </div>
-
+        
         {/* Navigation Links */}
         {[
           { name: "Home", path: "/", icon: Home },
@@ -41,13 +39,32 @@ export default function Layout({ children }) {
         <div className="flex-1"></div>
 
         {/* Floating Plus Button */}
-        <button className="bg-white text-blue-900 p-3 rounded-full shadow-lg hover:bg-gray-200 transition">
+        <button
+          onClick={users.length > 0 ? () => alert("Event Creation Modal") : handleSignIn}
+          className="bg-white text-blue-900 p-3 rounded-full shadow-lg hover:bg-gray-200 transition"
+        >
           <Plus size={24} />
         </button>
 
-        {/* Profile Icon at the Bottom */}
-        <div className="bg-gradient-to-tr from-blue-700 to-pink-500 p-1 rounded-full border border-yellow-500">
-          <User size={24} />
+        {/* Stacked Profile Icons at the Bottom */}
+        <div className="flex flex-col items-center gap-y-3 mt-4">
+          {users.length > 0 ? (
+            users.map((user) => (
+              <img
+                key={user.uid}
+                src={user.photoURL || "/default-avatar.png"}
+                alt="User"
+                className="w-10 h-10 rounded-full border-2 border-yellow-500 shadow-md"
+              />
+            ))
+          ) : (
+            <button
+              onClick={handleSignIn}
+              className="bg-gradient-to-tr from-blue-700 to-pink-500 p-1 rounded-full border border-yellow-500"
+            >
+              <User size={24} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -55,8 +72,8 @@ export default function Layout({ children }) {
       <div className="flex-1 flex flex-col">
         {/* Top Navbar */}
         <div className="bg-white shadow-md p-4 flex justify-between">
-          <span className="font-bold">Event Extraction Dashboard</span>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded">Sync</button>
+        <span className="font-bold text-2xl">Event Extraction Dashboard</span>
+        <button className="bg-blue-500 text-white px-4 py-2 rounded">Sync</button>
         </div>
 
         {/* Page Content */}

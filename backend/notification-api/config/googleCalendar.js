@@ -73,31 +73,35 @@ async function upsertEvent(userId, eventId, eventDetails) {
         };
 
         try {
-            // ✅ Attempt to update existing event
+            // Attempt to update existing event
             const response = await calendar.events.update({
                 calendarId: 'primary',
-                eventId: eventId, // ✅ Ensure eventId is correctly passed
+                eventId: eventId, // Ensure eventId is correctly passed
                 resource: event,
             });
 
+            // Log the response from Google
             console.log(`Event updated successfully: ${response.data.id}`);
+            console.log('Response from Google Calendar API:', response.data);
             return response.data;
         } catch (error) {
             console.error(`Failed to update event: ${eventId} - Error Code: ${error.code}`);
 
             if (error.code === 404) {
-                // ✅ If event not found, create it using the same eventId
+                // If event not found, create it using the same eventId
                 console.log(`Event not found (404). Creating new event for user: ${userId}`);
 
                 const newEventResponse = await calendar.events.insert({
                     calendarId: 'primary',
                     resource: {
                         ...event,
-                        id: eventId // ✅ Ensure new event uses the same eventId
+                        id: eventId // Ensure new event uses the same eventId
                     },
                 });
 
+                // Log the response from Google when a new event is created
                 console.log('New event created:', newEventResponse.data.id);
+                console.log('Response from Google Calendar API:', newEventResponse.data);
                 return newEventResponse.data;
             }
 
@@ -108,6 +112,7 @@ async function upsertEvent(userId, eventId, eventDetails) {
         throw new Error('Failed to add/update Google Calendar event.');
     }
 }
+
 
 /**
  * Deletes an event from a user's Google Calendar.

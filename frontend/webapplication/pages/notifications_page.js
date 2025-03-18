@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import NotificationCard from "../components/notificationCard";
-import EventPopupDialog from "../components/EventPopupDialog"; // ✅ Import EventPopupDialog
+import EventPopupDialog from "../components/EventPopupDialog";
+import { handleSaveEvent, handleDiscardEvent } from "../utils/eventHandlers";
+
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -63,6 +65,9 @@ export default function Notifications() {
         }
       });
 
+      console.log("📅 Events fetched for notifications:", eventData);
+
+
       setEvents(eventData);
     } catch (error) {
       console.error("🚨 Error fetching events:", error);
@@ -75,44 +80,18 @@ export default function Notifications() {
     setShowPopup(true);
   };
 
-  // ✅ Function to handle saving an event
-  const handleSaveEvent = async (updatedEvent) => {
-    try {
-      await axios.post(`${BACKEND_URL}/add_event`, { eventId: updatedEvent.id });
-
-      setEvents((prevEvents) => ({
-        ...prevEvents,
-        [updatedEvent.id]: { ...updatedEvent, button_status: 1 }, // ✅ Change status to 1 (Added)
-      }));
-
-      console.log(`✅ Event added: ${updatedEvent.id}`);
-    } catch (error) {
-      console.error("🚨 Error adding event:", error);
-    } finally {
-      setShowPopup(false); // ✅ Close the popup after saving
-    }
+  const handleSaveEventWrapper = (updatedEvent) => {
+    handleSaveEvent(updatedEvent, setEvents, setShowPopup);
   };
-
-  // ✅ Function to handle discarding an event
-  const onDiscardEvent = async (eventId) => {
-    try {
-      await axios.post(`${BACKEND_URL}/discard_event`, { eventId });
-
-      setEvents((prevEvents) => ({
-        ...prevEvents,
-        [eventId]: { ...prevEvents[eventId], button_status: 2 }, // ✅ Change status to 2 (Discarded)
-      }));
-
-      console.log(`❌ Event discarded: ${eventId}`);
-    } catch (error) {
-      console.error("🚨 Error discarding event:", error);
-    } finally {
-      setShowPopup(false); // ✅ Close the popup after discarding
-    }
+  
+  const handleDiscardEventWrapper = (eventId) => {
+    handleDiscardEvent(eventId, setEvents, setShowPopup);
   };
+  
 
   useEffect(() => {
     fetchNotifications();
+    
   }, []);
 
   // Infinite scrolling (load more on scroll)
@@ -148,7 +127,7 @@ export default function Notifications() {
               notification={notification}
               event={events[notification.id] || null}
               onAddEvent={onAddEvent} // ✅ Pass function to open popup
-              onDiscardEvent={onDiscardEvent} // ✅ Pass function to discard event
+              onDiscardEvent={handleDiscardEventWrapper} // ✅ Pass function to discard event
             />
           ))
         )}
@@ -163,9 +142,9 @@ export default function Notifications() {
       {showPopup && selectedEvent && (
         <EventPopupDialog
           eventDetails={selectedEvent}
-          onSave={handleSaveEvent}
-          onDiscard={onDiscardEvent}
-          onClose={() => setShowPopup(false)} // ✅ Close popup when done
+          onAdd={handleSaveEventWrapper}
+          onDiscard={handleDiscardEventWrapper}
+          onClose={() => setShowPopup(false)}
         />
       )}
     </div>
