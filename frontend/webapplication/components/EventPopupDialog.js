@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { formatDateOnly, formatTimeOnly } from "../utils/dateUtils"; // ✅ Reuse date formatters
-
 export default function EventPopupDialog({ eventDetails, onSave, onDiscard, onClose }) {
   const [title, setTitle] = useState(eventDetails?.title || "");
   const [description, setDescription] = useState(eventDetails?.description || "");
@@ -25,8 +23,8 @@ export default function EventPopupDialog({ eventDetails, onSave, onDiscard, onCl
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
-      <div className="bg-white p-6 rounded-lg shadow-md w-[90%] max-w-md">
+  <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: "rgba(26, 26, 26, 0.72)" }}>
+    <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md relative">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <button onClick={onClose} className="text-gray-600 hover:text-gray-900">✖</button>

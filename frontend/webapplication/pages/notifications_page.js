@@ -9,10 +9,10 @@ export default function Notifications() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [lastVisible, setLastVisible] = useState(null);
-  const [showPopup, setShowPopup] = useState(false); // ✅ Controls popup visibility
-  const [selectedEvent, setSelectedEvent] = useState(null); // ✅ Stores event details
+  const [showPopup, setShowPopup] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const BACKEND_URL = "http://localhost:3000/api/notifications"; // ✅ Direct backend URL
+  const BACKEND_URL = "http://localhost:3000/api/notifications";
 
   // Fetch notifications
   const fetchNotifications = async (limit = 20) => {
@@ -23,8 +23,6 @@ export default function Notifications() {
       const url = `${BACKEND_URL}?limit=${limit}${lastVisible ? `&startAfter=${lastVisible}` : ""}`;
       const response = await axios.get(url);
       const newNotifications = response.data.notifications || [];
-
-      console.log(`🕒 Notifications fetched at ${new Date().toLocaleString()}:`, newNotifications);
 
       setNotifications((prev) => [...prev, ...newNotifications]);
 
@@ -59,14 +57,12 @@ export default function Notifications() {
 
       eventResponses.forEach((response, index) => {
         if (response) {
-          console.log(`📩 API Response for ID ${notificationIds[index]}:`, response.data);
           if (response.data.event) {
             eventData[notificationIds[index]] = response.data.event;
           }
         }
       });
 
-      console.log("🔥 Updated Events Data:", eventData);
       setEvents(eventData);
     } catch (error) {
       console.error("🚨 Error fetching events:", error);
@@ -92,6 +88,8 @@ export default function Notifications() {
       console.log(`✅ Event added: ${updatedEvent.id}`);
     } catch (error) {
       console.error("🚨 Error adding event:", error);
+    } finally {
+      setShowPopup(false); // ✅ Close the popup after saving
     }
   };
 
@@ -108,6 +106,8 @@ export default function Notifications() {
       console.log(`❌ Event discarded: ${eventId}`);
     } catch (error) {
       console.error("🚨 Error discarding event:", error);
+    } finally {
+      setShowPopup(false); // ✅ Close the popup after discarding
     }
   };
 

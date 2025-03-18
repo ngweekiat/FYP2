@@ -44,11 +44,18 @@ export function formatISOTimestamp(timestamp) {
 }
 
 // Function to convert a date string or Date object to ISO 8601 format (e.g., "2025-03-18T06:16:28Z")
-export function convertToISO(dateInput) {
+export function convertToISO(dateInput, timeInput = "00:00") {
   if (!dateInput) return "Invalid Date"; // Check for invalid input
 
-  const date = new Date(dateInput);
-  if (isNaN(date)) return "Invalid Date"; // Ensure it's a valid Date
+  // Handle the case where dateInput is in the format "YYYY-MM-DD"
+  const [year, month, day] = dateInput.split("-").map(Number);
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return "Invalid Date";
 
-  return date.toISOString(); // Convert to ISO 8601 format
+  // If a time is provided, combine it with the date (e.g., "2025-03-18T07:17")
+  const time = timeInput || "00:00"; // Default to 00:00 if no time provided
+  const dateTime = new Date(year, month - 1, day, ...time.split(":").map(Number)); // Combine date and time
+
+  if (isNaN(dateTime)) return "Invalid Date"; // Ensure it's a valid Date
+
+  return dateTime.toISOString(); // Convert to ISO 8601 format
 }

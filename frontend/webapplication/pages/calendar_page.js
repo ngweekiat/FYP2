@@ -3,7 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import axios from "axios";
-import { formatDateOnly, formatTimeOnly, formatISOTimestamp } from "../utils/dateUtils"; // ✅ Import new date/time formatters
+import { formatDateOnly, formatTimeOnly, formatISOTimestamp, convertToISO } from "../utils/dateUtils"; // ✅ Import new date/time formatters
 
 
 export default function Calendar() {
@@ -17,17 +17,22 @@ export default function Calendar() {
   const formatEvents = (eventsData) =>
     eventsData
       .filter((event) => event.button_status === 1) // Only include saved events
-      .map((event) => ({
-        id: event.id || "",
-        title: event.title || "No Title",
-        start: event.start_date || "Unknown Date",
-        end: event.end_date || event.start_date,
-        description: event.description || "No Description",
-        location: event.location || "Unknown Location",
-        allDay: event.allDay ?? false,
-        startTime: event.start_time || "00:00",
-        endTime: event.end_time || "01:00",
-      }));
+      .map((event) => {
+        const startDateTime = convertToISO(event.start_date, event.start_time); // Combine date and time
+        const endDateTime = event.end_date ? convertToISO(event.end_date, event.end_time) : startDateTime; // If no end date, use start time
+  
+        return {
+          id: event.id || "",
+          title: event.title || "No Title",
+          start: startDateTime,
+          end: endDateTime,
+          description: event.description || "No Description",
+          location: event.location || "Unknown Location",
+          allDay: event.allDay ?? false,
+        };
+      });
+  
+  
 
   /**
    * Fetch all events at once from the new /calendar_events_all route
@@ -38,6 +43,7 @@ export default function Calendar() {
     try {
       const response = await axios.get(`${BACKEND_URL}/calendar_events_all`); // ✅ Updated API route
       const formattedEvents = formatEvents(response.data.events); // Adjusted to use `events` from response
+      console.log("📅 Original Events:", formattedEvents);
 
       console.log("📅 Formatted Events:", formattedEvents);
 
@@ -70,6 +76,11 @@ export default function Calendar() {
           left: "prev,next today",
           center: "title",
           right: "dayGridMonth,dayGridWeek,dayGridDay",
+        }}
+        eventTimeFormat={{
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,  // This ensures AM/PM format
         }}
         eventClick={(info) =>
           alert(`Event: ${info.event.title}\nDetails: ${info.event.extendedProps.description}`)
