@@ -78,6 +78,40 @@ router.post('/save-user', async (req, res) => {
     }
 });
 
+
+/**
+ * POST: Save or update user authentication details in Firestore (Web-based authentication).
+ */
+router.post('/save-user-web', async (req, res) => {
+    try {
+        const { uid, email, displayName, accessToken, refreshToken } = req.body;
+
+        if (!uid || !email || !accessToken || !refreshToken) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        const userRef = db.collection('users').doc(uid);
+        await userRef.set(
+            {
+                uid,
+                email,
+                displayName: displayName || "Unknown",
+                accessToken,
+                refreshToken,
+                tokenExpiry: Date.now() + 3600 * 1000, // Tokens expire in 1 hour
+            },
+            { merge: true }
+        );
+
+        console.log("User tokens stored successfully!");
+        return res.status(201).json({ message: 'User saved successfully', uid });
+
+    } catch (error) {
+        console.error('Error storing tokens:', error);
+        return res.status(500).json({ message: 'Failed to store tokens', error: error.message });
+    }
+});
+
 /**
  * GET: Retrieve user details by UID.
  */

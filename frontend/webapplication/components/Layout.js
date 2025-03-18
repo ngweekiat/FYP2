@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Home, Bell, Calendar, Settings, Plus, User } from "lucide-react";
+import { Mail, Bell, Calendar, Settings, Plus, User } from "lucide-react";
 import { useAuth } from "../utils/AuthContext";
 
 export default function Layout({ children }) {
@@ -14,9 +14,9 @@ export default function Layout({ children }) {
         
         {/* Navigation Links */}
         {[
-          { name: "Home", path: "/", icon: Home },
           { name: "Notifications", path: "/notifications_page", icon: Bell },
           { name: "Calendar", path: "/calendar_page", icon: Calendar },
+          { name: "Email", path: "/email_page", icon: Mail },
           { name: "Settings", path: "/settings_page", icon: Settings },
         ].map((item) => {
           const isActive = router.pathname === item.path;
