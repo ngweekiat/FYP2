@@ -1,8 +1,6 @@
-import { formatDate } from "../utils/dateUtils"; // ✅ Import date formatter
+import { formatDateOnly, formatTimeOnly, formatISOTimestamp } from "../utils/dateUtils"; // ✅ Import new date/time formatters
 
 export default function NotificationCard({ notification, event, onEventClick, onAddEvent, onDiscardEvent }) {
-  console.log(`🛑 Notification ID: ${notification.id}, Passed Event:`, event); // ✅ Debugging log
-
   return (
     <div className="bg-white shadow-md p-4 rounded-md border border-gray-300">
       {/* Sender and Time */}
@@ -10,7 +8,9 @@ export default function NotificationCard({ notification, event, onEventClick, on
         <h2 className="text-primary font-bold text-lg">
           {notification.appName || notification.sender || "Unknown Sender"}
         </h2>
-        <span className="text-gray-500 text-sm">{formatDate(notification.timestamp)}</span>
+        <span className="text-gray-500 text-sm">
+          {formatDateOnly(notification.timestamp)} • {formatISOTimestamp(notification.timestamp)}
+        </span>
       </div>
 
       {/* Notification Title */}
@@ -27,15 +27,15 @@ export default function NotificationCard({ notification, event, onEventClick, on
       {notification.notification_importance === 1 && (
         <div className="mt-3 p-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm">
           {event.button_status === 0 && (
-            <div className="flex justify-between">
+            <div className="flex gap-3">
               <button
-                className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
+                className="bg-blue-500 text-white px-4 py-3 text-sm font-bold rounded-md hover:bg-blue-600 transition w-full"
                 onClick={() => onAddEvent(event)}
               >
                 Add Event
               </button>
               <button
-                className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition"
+                className="bg-red-800 text-white px-4 py-3 text-sm font-bold rounded-md hover:bg-red-900 transition w-full"
                 onClick={() => onDiscardEvent(event)}
               >
                 Discard Event
@@ -43,21 +43,25 @@ export default function NotificationCard({ notification, event, onEventClick, on
             </div>
           )}
 
+          {/* Display extracted event details with a black bar in front */}
           {event.button_status === 1 && event.title && event.start_date && event.start_time && (
-            <button
-              className="w-full p-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm text-left hover:bg-gray-200 active:bg-gray-300 transition"
-              onClick={() => onEventClick && onEventClick(event)}
-            >
-              <p className="text-sm text-gray-800 font-bold">{event.title}</p>
-              <p className="text-sm text-gray-800 font-bold">
-                {formatDate(`${event.start_date} ${event.start_time}`)}
-              </p>
-            </button>
+            <div className="flex items-center gap-3 mt-2">
+              {/* Black vertical bar */}
+              <div className="w-[4px] min-h-[20px] bg-blue-500 self-stretch shrink-0"></div>
+              <div>
+                <p className="text-sm font-bold text-blue-500">{event.title}</p>
+                <p className="text-sm font-bold text-blue-500">
+                  {formatDateOnly(event.start_date)} {formatTimeOnly(event.start_time)}
+                </p>
+              </div>
+            </div>
           )}
 
+          {/* Display "Event Discarded" with black bar for button_status === 2 */}
           {event.button_status === 2 && (
-            <div className="w-full p-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm text-left">
-              <p className="text-sm text-red-700 font-bold">Event Discarded</p>
+            <div className="flex items-center gap-3 mt-2">
+              <div className="w-[4px] min-h-[20px] bg-red-800 self-stretch shrink-0"></div>
+              <p className="text-sm font-bold text-red-800">Event Discarded</p>
             </div>
           )}
         </div>

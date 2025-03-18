@@ -310,7 +310,7 @@ router.patch('/:id/updateImportance', async (req, res) => {
  */
 router.patch('/calendar_events/:id', async (req, res) => {
     const eventId = req.params.id;
-    const updatedEventData = req.body; // Data to update
+    let updatedEventData = req.body; // Data to update
 
     try {
         // Find the existing event document in Firestore
@@ -322,19 +322,75 @@ router.patch('/calendar_events/:id', async (req, res) => {
 
         // Get the first matching document (assuming ID is unique)
         const doc = snapshot.docs[0];
+        const existingEvent = doc.data();
 
-        // Update the event document with the new data
-        await db.collection('calendar_events').doc(doc.id).update(updatedEventData);
+        // Use existing values if the new values are undefined
+        const startDate = updatedEventData.start_date ? new Date(updatedEventData.start_date) : new Date(existingEvent.start_date);
+        let endDate = updatedEventData.end_date ? new Date(updatedEventData.end_date) : startDate;
+
+        let startTime = updatedEventData.start_time || existingEvent.start_time || "00:00";
+        let endTime = updatedEventData.end_time || existingEvent.end_time;
+
+        if (!updatedEventData.end_date || !updatedEventData.end_time) {
+            // Parse start time (HH:MM format)
+            const [startHour, startMinute] = startTime.split(":").map(Number);
+
+            // Add one hour to the start time
+            let adjustedEndTime = new Date(startDate);
+            adjustedEndTime.setHours(startHour + 1, startMinute);
+
+            endDate = adjustedEndTime;
+            endTime = `${adjustedEndTime.getHours().toString().padStart(2, '0')}:${adjustedEndTime.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // Prepare updated event data
+        const updatedEvent = {
+            ...existingEvent,
+            ...updatedEventData,
+            start_date: startDate.toISOString().split("T")[0],
+            end_date: endDate.toISOString().split("T")[0],
+            start_time: startTime,
+            end_time: endTime,
+        };
+
+        // Update the event document in Firestore
+        await db.collection('calendar_events').doc(doc.id).update(updatedEvent);
 
         res.status(200).json({
             message: 'Calendar event updated successfully',
-            updatedEvent: updatedEventData,
+            updatedEvent,
         });
     } catch (error) {
         console.error('Error updating calendar event:', error);
         res.status(500).json({ message: 'Failed to update calendar event', error: error.message });
     }
 });
+
+
+
+/**
+ * GET: Fetch all calendar events.
+ */
+router.get('/calendar_events_all', async (req, res) => {
+    try {
+        const snapshot = await db.collection('calendar_events').get();
+
+        if (snapshot.empty) {
+            return res.status(404).json({ message: 'No calendar events found' });
+        }
+
+        const events = snapshot.docs.map(doc => doc.data());
+
+        res.status(200).json({
+            message: 'All calendar events retrieved successfully',
+            events,
+        });
+    } catch (error) {
+        console.error('Error retrieving all calendar events:', error);
+        res.status(500).json({ message: 'Failed to retrieve calendar events', error: error.message });
+    }
+});
+
 
 
 
@@ -441,7 +497,7 @@ router.get('/export', async (req, res) => {
  * POST: Create a new calendar event.
  */
 router.post('/calendar_events', async (req, res) => {
-    const eventData = req.body;
+    let eventData = req.body;
 
     if (!eventData.id) {
         return res.status(400).json({ message: 'Missing required field: event ID' });
@@ -455,18 +511,48 @@ router.post('/calendar_events', async (req, res) => {
             return res.status(409).json({ message: 'Calendar event already exists', eventId: eventData.id });
         }
 
-        // Save new event to Firestore with the specified ID
-        await db.collection('calendar_events').doc(eventData.id).set(eventData);
+        // Ensure `start_date` is in proper format
+        const startDate = eventData.start_date ? new Date(eventData.start_date) : null;
+        let endDate = eventData.end_date ? new Date(eventData.end_date) : startDate;
+
+        // Ensure `start_time` and `end_time` are properly set
+        let startTime = eventData.start_time || "00:00"; // Default to midnight if missing
+        let endTime = eventData.end_time;
+
+        if (!eventData.end_date || !eventData.end_time) {
+            // Parse start time (HH:MM format)
+            const [startHour, startMinute] = startTime.split(":").map(Number);
+
+            // Add one hour to the start time
+            let adjustedEndTime = new Date(startDate);
+            adjustedEndTime.setHours(startHour + 1, startMinute);
+
+            endDate = adjustedEndTime;
+            endTime = `${adjustedEndTime.getHours().toString().padStart(2, '0')}:${adjustedEndTime.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // Save new event with adjusted end time
+        const eventToSave = {
+            ...eventData,
+            start_date: startDate.toISOString().split("T")[0], // Format YYYY-MM-DD
+            end_date: endDate.toISOString().split("T")[0], // Format YYYY-MM-DD
+            start_time: startTime,
+            end_time: endTime,
+            button_status: eventData.button_status || 0,
+        };
+
+        await db.collection('calendar_events').doc(eventData.id).set(eventToSave);
 
         res.status(201).json({
             message: 'Calendar event created successfully',
-            event: eventData,
+            event: eventToSave,
         });
     } catch (error) {
         console.error('Error creating calendar event:', error);
         res.status(500).json({ message: 'Failed to create calendar event', error: error.message });
     }
 });
+
 
 
 

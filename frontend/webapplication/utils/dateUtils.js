@@ -1,20 +1,54 @@
-export function formatDate(timestamp) {
-    if (!timestamp) return "No Timestamp";
-  
-    const date = new Date(timestamp);
-  
-    // Define month abbreviations in uppercase
-    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-  
-    const day = String(date.getDate()).padStart(2, "0"); // Ensure 2-digit day
-    const month = months[date.getMonth()]; // Get month abbreviation
-    const year = date.getFullYear();
-  
-    let hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, "0"); // Ensure 2-digit minutes
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12; // Convert 24-hour time to 12-hour format
-  
-    return `${month} ${day}, ${year} ${hours}:${minutes}${ampm}`;
-  }
-  
+// Function to format the date as "MAR 18, 2025"
+export function formatDateOnly(dateString) {
+  if (!dateString) return "No Date";
+
+  const date = new Date(dateString);
+  if (isNaN(date)) return "Invalid Date";
+
+  const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+  const day = String(date.getDate()).padStart(2, "0"); // Ensure 2-digit day
+  const month = months[date.getMonth()]; // Get month abbreviation
+  const year = date.getFullYear();
+
+  return `${month} ${day}, ${year}`;
+}
+
+// Function to format the time as "01:06 AM"
+export function formatTimeOnly(timeString) {
+  if (!timeString) return "No Time";
+
+  const [hours, minutes] = timeString.split(":").map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return "Invalid Time";
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const formattedHours = hours % 12 || 12; // Convert 24-hour format to 12-hour
+
+  return `${formattedHours}:${String(minutes).padStart(2, "0")}${ampm}`;
+}
+
+
+// Function to format the time from an ISO 8601 timestamp (e.g., "2025-03-18T06:16:28Z") to "06:16 AM"
+export function formatISOTimestamp(timestamp) {
+  if (!timestamp) return "No Time";
+
+  const date = new Date(timestamp);
+  if (isNaN(date)) return "Invalid Time";
+
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const formattedHours = hours % 12 || 12; // Convert 24-hour format to 12-hour
+
+  return `${formattedHours}:${String(minutes).padStart(2, "0")} ${ampm}`;
+}
+
+// Function to convert a date string or Date object to ISO 8601 format (e.g., "2025-03-18T06:16:28Z")
+export function convertToISO(dateInput) {
+  if (!dateInput) return "Invalid Date"; // Check for invalid input
+
+  const date = new Date(dateInput);
+  if (isNaN(date)) return "Invalid Date"; // Ensure it's a valid Date
+
+  return date.toISOString(); // Convert to ISO 8601 format
+}

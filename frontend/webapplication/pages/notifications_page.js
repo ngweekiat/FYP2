@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import NotificationCard from "../components/NotificationCard";
+import NotificationCard from "../components/notificationCard";
+import EventPopupDialog from "../components/EventPopupDialog"; // ✅ Import EventPopupDialog
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -8,6 +9,8 @@ export default function Notifications() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [lastVisible, setLastVisible] = useState(null);
+  const [showPopup, setShowPopup] = useState(false); // ✅ Controls popup visibility
+  const [selectedEvent, setSelectedEvent] = useState(null); // ✅ Stores event details
 
   const BACKEND_URL = "http://localhost:3000/api/notifications"; // ✅ Direct backend URL
 
@@ -21,20 +24,20 @@ export default function Notifications() {
       const response = await axios.get(url);
       const newNotifications = response.data.notifications || [];
 
+      console.log(`🕒 Notifications fetched at ${new Date().toLocaleString()}:`, newNotifications);
+
       setNotifications((prev) => [...prev, ...newNotifications]);
 
       if (response.data.lastVisible) {
         setLastVisible(response.data.lastVisible);
       }
 
-      // ✅ Filter notifications where notification_importance === 1
       const importantNotificationIds = newNotifications
         .filter((n) => n.notification_importance === 1)
         .map((n) => n.id);
 
-      // Fetch only important events
       if (importantNotificationIds.length > 0) {
-        fetchEvents(importantNotificationIds);
+        await fetchEvents(importantNotificationIds);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -56,18 +59,55 @@ export default function Notifications() {
 
       eventResponses.forEach((response, index) => {
         if (response) {
-          console.log(`📩 API Response for ID ${notificationIds[index]}:`, response.data); // ✅ Log API response
+          console.log(`📩 API Response for ID ${notificationIds[index]}:`, response.data);
           if (response.data.event) {
             eventData[notificationIds[index]] = response.data.event;
           }
         }
       });
 
-      console.log("🔥 Updated Events Data:", eventData); // ✅ Debugging log
-
-      setEvents((prev) => ({ ...prev, ...eventData })); // ✅ Update state properly
+      console.log("🔥 Updated Events Data:", eventData);
+      setEvents(eventData);
     } catch (error) {
       console.error("🚨 Error fetching events:", error);
+    }
+  };
+
+  // ✅ Function to handle adding an event (Opens Popup)
+  const onAddEvent = (event) => {
+    setSelectedEvent(event);
+    setShowPopup(true);
+  };
+
+  // ✅ Function to handle saving an event
+  const handleSaveEvent = async (updatedEvent) => {
+    try {
+      await axios.post(`${BACKEND_URL}/add_event`, { eventId: updatedEvent.id });
+
+      setEvents((prevEvents) => ({
+        ...prevEvents,
+        [updatedEvent.id]: { ...updatedEvent, button_status: 1 }, // ✅ Change status to 1 (Added)
+      }));
+
+      console.log(`✅ Event added: ${updatedEvent.id}`);
+    } catch (error) {
+      console.error("🚨 Error adding event:", error);
+    }
+  };
+
+  // ✅ Function to handle discarding an event
+  const onDiscardEvent = async (eventId) => {
+    try {
+      await axios.post(`${BACKEND_URL}/discard_event`, { eventId });
+
+      setEvents((prevEvents) => ({
+        ...prevEvents,
+        [eventId]: { ...prevEvents[eventId], button_status: 2 }, // ✅ Change status to 2 (Discarded)
+      }));
+
+      console.log(`❌ Event discarded: ${eventId}`);
+    } catch (error) {
+      console.error("🚨 Error discarding event:", error);
     }
   };
 
@@ -94,7 +134,6 @@ export default function Notifications() {
 
       {/* Scrollable Container */}
       <div className="flex-1 overflow-y-auto space-y-4 relative">
-        {/* Show "Fetching Notifications..." only on initial load */}
         {initialLoading ? (
           <div className="flex justify-center items-center h-full">
             <div className="flex flex-col items-center">
@@ -107,7 +146,9 @@ export default function Notifications() {
             <NotificationCard
               key={notification.id}
               notification={notification}
-              event={events[notification.id] || null} // ✅ Pass the corresponding event
+              event={events[notification.id] || null}
+              onAddEvent={onAddEvent} // ✅ Pass function to open popup
+              onDiscardEvent={onDiscardEvent} // ✅ Pass function to discard event
             />
           ))
         )}
@@ -117,6 +158,16 @@ export default function Notifications() {
           <p className="text-center text-gray-600">Loading more...</p>
         )}
       </div>
+
+      {/* ✅ Show Popup When an Event is Selected */}
+      {showPopup && selectedEvent && (
+        <EventPopupDialog
+          eventDetails={selectedEvent}
+          onSave={handleSaveEvent}
+          onDiscard={onDiscardEvent}
+          onClose={() => setShowPopup(false)} // ✅ Close popup when done
+        />
+      )}
     </div>
   );
 }
