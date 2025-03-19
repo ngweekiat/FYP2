@@ -19,13 +19,18 @@ async function detectEventInNotification(notificationText) {
       messages: [
         {
           role: "system",
-          content: "You are an AI that determines if a notification contains an event. Respond **only** with '1' if an event is detected and '0' if not, without any extra text or formatting.",
+          content: "You are an AI that determines if a notification contains an event that can be added to a calendar.\n" +
+                   "Respond **only** with '1' if an event is detected and '0' if not. **No extra text, no explanations, no formatting.**\n" +
+                   "An event must have a clear reference to a **date, time, or schedule** to be considered valid."
         },
         {
           role: "user",
-          content: `Does the following notification contain an event that can be added to a calendar? Respond **only** with '1' (yes) or '0' (no).\n\nNotification: "${notificationText}"`,
+          content: `Analyze the following notification:\n\n"${notificationText}"\n\n` +
+                   "Does this contain an event that can be added to a calendar?\n" +
+                   "Respond **only** with '1' (yes) or '0' (no). **Do not include any other text.**"
         },
       ],
+      max_tokens: 5, // Ensures no unnecessary output
     };
 
     console.log("🟢 [DEBUG] Sending request to OpenAI:", JSON.stringify(requestPayload, null, 2));

@@ -7,6 +7,7 @@ const helmet = require('helmet'); // For security headers
 const notificationRoutes = require('./routes/notifications'); // Notification routes
 const googleCalendarRoutes = require('./routes/googleCalendarRoutes'); // Google Calendar routes
 const usermanagementroutes = require('./routes/usermanagementroutes');
+const email_eventExtractionRoutes = require('./routes/emailExtractionRoute');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use(helmet()); // Secure app with various HTTP headers
 // Routes
 app.use('/api/notifications', notificationRoutes); // Notification-related routes
 app.use('/api/google-calendar', googleCalendarRoutes); // Google Calendar integration routes
+app.use('/api/email_extract_event', email_eventExtractionRoutes);
 app.use('/api/users', usermanagementroutes);
 
 // Root Route

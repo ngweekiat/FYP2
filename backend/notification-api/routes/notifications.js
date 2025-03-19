@@ -102,7 +102,7 @@ router.post('/', async (req, res) => {
             console.log('🔍 Notification contains an event, extracting details...');
 
             // Extract calendar event details
-            const eventDetails = await extractEventDetails(notificationText);
+            const eventDetails = await extractEventDetails(notificationText, notification.timestamp);
 
             // Check if extracted event is meaningful
             const isEventValid = eventDetails.title || eventDetails.start_date || eventDetails.start_time;
@@ -494,7 +494,7 @@ router.get('/export', async (req, res) => {
 
 
 /**
- * POST: Create a new calendar event.
+ * POST: Create or Update a calendar event.
  */
 router.post('/calendar_events', async (req, res) => {
     let eventData = req.body;
@@ -507,18 +507,28 @@ router.post('/calendar_events', async (req, res) => {
         // Check if event with the same ID already exists
         const snapshot = await db.collection('calendar_events').where('id', '==', eventData.id).get();
 
+        let existingEvent = null;
+        let docRef = null;
+
         if (!snapshot.empty) {
-            return res.status(409).json({ message: 'Calendar event already exists', eventId: eventData.id });
+            // Event exists, update instead of creating a new one
+            docRef = snapshot.docs[0].ref;
+            existingEvent = snapshot.docs[0].data();
+            console.log(`Updating existing event: ${eventData.id}`);
+        } else {
+            // Event does not exist, create a new one
+            console.log(`Creating new event: ${eventData.id}`);
+            docRef = db.collection('calendar_events').doc(eventData.id);
         }
 
-        // Ensure `start_date` is in proper format
-        const startDate = eventData.start_date ? new Date(eventData.start_date) : null;
-        let endDate = eventData.end_date ? new Date(eventData.end_date) : startDate;
+        // Use existing values if new ones are undefined
+        const startDate = eventData.start_date ? new Date(eventData.start_date) : new Date(existingEvent?.start_date || Date.now());
+        let endDate = eventData.end_date ? new Date(eventData.end_date) : new Date(startDate);
 
-        // Ensure `start_time` and `end_time` are properly set
-        let startTime = eventData.start_time || "00:00"; // Default to midnight if missing
-        let endTime = eventData.end_time;
+        let startTime = eventData.start_time || existingEvent?.start_time || "00:00";
+        let endTime = eventData.end_time || existingEvent?.end_time;
 
+        // Ensure valid date format
         if (!eventData.end_date || !eventData.end_time) {
             // Parse start time (HH:MM format)
             const [startHour, startMinute] = startTime.split(":").map(Number);
@@ -531,25 +541,30 @@ router.post('/calendar_events', async (req, res) => {
             endTime = `${adjustedEndTime.getHours().toString().padStart(2, '0')}:${adjustedEndTime.getMinutes().toString().padStart(2, '0')}`;
         }
 
-        // Save new event with adjusted end time
+        // Prepare updated or new event data
         const eventToSave = {
-            ...eventData,
-            start_date: startDate.toISOString().split("T")[0], // Format YYYY-MM-DD
-            end_date: endDate.toISOString().split("T")[0], // Format YYYY-MM-DD
+            id: eventData.id,
+            title: eventData.title || existingEvent?.title || "",
+            start_date: startDate.toISOString().split("T")[0],
+            end_date: endDate.toISOString().split("T")[0],
             start_time: startTime,
             end_time: endTime,
-            button_status: eventData.button_status || 0,
+            location: eventData.location || existingEvent?.location || "",
+            description: eventData.description || existingEvent?.description || "",
+            button_status: eventData.button_status ?? existingEvent?.button_status ?? 0, // Keep existing status if available
         };
 
-        await db.collection('calendar_events').doc(eventData.id).set(eventToSave);
+        // Save the event (either create or update)
+        await docRef.set(eventToSave, { merge: true });
 
-        res.status(201).json({
-            message: 'Calendar event created successfully',
+        res.status(snapshot.empty ? 201 : 200).json({
+            message: snapshot.empty ? 'Calendar event created successfully' : 'Calendar event updated successfully',
             event: eventToSave,
         });
+
     } catch (error) {
-        console.error('Error creating calendar event:', error);
-        res.status(500).json({ message: 'Failed to create calendar event', error: error.message });
+        console.error('🚨 Error creating/updating calendar event:', error);
+        res.status(500).json({ message: 'Failed to process calendar event', error: error.message });
     }
 });
 
