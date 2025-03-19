@@ -8,12 +8,11 @@ export default function Layout({ children }) {
   const { users, handleSignIn } = useAuth();
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
       {/* Sidebar */}
-      <div className="bg-blue-500 text-white w-16 flex flex-col items-center py-4 space-y-6 relative">
-        
+      <div className="bg-blue-500 text-white w-16 flex flex-col items-center py-4 space-y-6 relative h-full">
         {/* Navigation Links */}
-        {[
+        {[ 
           { name: "Notifications", path: "/notifications_page", icon: Bell },
           { name: "Calendar", path: "/calendar_page", icon: Calendar },
           { name: "Email", path: "/email_page", icon: Mail },
@@ -69,15 +68,15 @@ export default function Layout({ children }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navbar */}
         <div className="bg-white shadow-md p-4 flex justify-between">
-        <span className="font-bold text-2xl">Event Extraction Dashboard</span>
-        <button className="bg-blue-500 text-white px-4 py-2 rounded">Sync</button>
+          <span className="font-bold text-2xl">Event Extraction Dashboard</span>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded">Sync</button>
         </div>
 
         {/* Page Content */}
-        <div className="p-6">{children}</div>
+        <div className="p-6 overflow-y-auto">{children}</div>
       </div>
     </div>
   );
