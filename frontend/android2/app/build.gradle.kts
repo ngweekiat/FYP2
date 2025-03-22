@@ -107,4 +107,16 @@ dependencies {
     // Debugging and Development Tools
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Testing Dependencies
+    testImplementation ("org.junit.jupiter:junit-jupiter-api:5.10.0")
+    testRuntimeOnly ("org.junit.jupiter:junit-jupiter-engine:5.10.0")
+    testImplementation ("org.mockito:mockito-core:5.2.0")
+    testImplementation ("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
+    testImplementation ("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation(kotlin("test"))
+    testImplementation("io.mockk:mockk:1.13.7")
+    }
+tasks.withType<Test> {
+    useJUnitPlatform()
 }

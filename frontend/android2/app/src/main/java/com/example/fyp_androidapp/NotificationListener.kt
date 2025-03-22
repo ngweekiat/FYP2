@@ -26,7 +26,6 @@ fun generateHashedId(input: String): String {
 }
 
 class NotificationListener : NotificationListenerService() {
-
     private val TAG = "NotificationListener"
     private val BACKEND_URL = "${Constants.BASE_URL}/notifications"
     private val client = OkHttpClient()
@@ -36,12 +35,8 @@ class NotificationListener : NotificationListenerService() {
         Log.d(TAG, "🚀 NotificationListener service created")
     }
 
-
-
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
-
-
 
         // Extract notification details
         val packageName = sbn.packageName
