@@ -2,7 +2,8 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
-    id("org.jetbrains.kotlin.kapt")
+    id("com.google.devtools.ksp")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
@@ -15,6 +16,7 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -120,9 +122,18 @@ dependencies {
 
     // Room dependencies
     implementation ("androidx.room:room-runtime:2.6.1")
-    kapt ("androidx.room:room-compiler:2.6.1")
+    implementation ("androidx.room:room-ktx")
+    ksp("androidx.room:room-compiler:2.6.1")
 
-    }
+    // gemini android sdk
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
+
+}
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }

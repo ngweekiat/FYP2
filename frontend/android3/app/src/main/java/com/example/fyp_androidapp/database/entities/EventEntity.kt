@@ -1,4 +1,17 @@
-package com.example.fyp_androidapp.com.example.fyp_androidapp.database.entities
+// com.example.fyp_androidapp.database.entities.EventEntity.kt
+package com.example.fyp_androidapp.database.entities
 
-class EventEntity {
-}
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "events")
+data class EventEntity(
+    @PrimaryKey val id: String,  // <- now matches NotificationEntity.id
+    val title: String,
+    val description: String,
+    val startDate: String,
+    val startTime: String,
+    val endDate: String,
+    val endTime: String,
+    val allDay: Boolean
+)

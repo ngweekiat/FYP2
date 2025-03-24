@@ -3,21 +3,18 @@ package com.example.fyp_androidapp;
 import android.app.Notification;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
+import com.example.fyp_androidapp.database.entities.NotificationEntity
 import android.util.Log;
 import kotlinx.coroutines.CoroutineScope;
 import kotlinx.coroutines.Dispatchers;
 import kotlinx.coroutines.launch;
-import okhttp3.MediaType.Companion.toMediaTypeOrNull;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.security.MessageDigest
-import com.example.fyp_androidapp.Constants
+import com.example.fyp_androidapp.database.AppDatabase
+import com.example.fyp_androidapp.utils.NotificationETL
+
 
 
 fun generateHashedId(input: String): String {
@@ -27,8 +24,11 @@ fun generateHashedId(input: String): String {
 
 class NotificationListener : NotificationListenerService() {
     private val TAG = "NotificationListener"
-    private val BACKEND_URL = "${Constants.BASE_URL}/notifications"
-    private val client = OkHttpClient()
+    private val serviceScope = CoroutineScope(Dispatchers.IO)
+
+    private val database: AppDatabase by lazy {
+        AppDatabase.getInstance(applicationContext)
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -84,6 +84,10 @@ class NotificationListener : NotificationListenerService() {
 
         val isGroupSummary = (flags and Notification.FLAG_GROUP_SUMMARY) != 0
 
+        if (isGroupSummary) {
+            Log.d(TAG, "🧺 Group summary notification ignored: ${sbn.key}")
+            return
+        }
         val actions = notification.actions
 
         // Generate unique ID from the hash value of rawID
@@ -102,95 +106,59 @@ class NotificationListener : NotificationListenerService() {
 
         Log.d(TAG, "App Name: $appName")
 
-        // Build JSON object
-        val notificationData = JSONObject()
-        try {
-            notificationData.put("packageName", packageName)
-            notificationData.put("appName", appName)
-            notificationData.put("title", title)
-            notificationData.put("text", text)
-            notificationData.put("subText", subText)
-            notificationData.put("infoText", infoText)
-            notificationData.put("summaryText", summaryText)
-            notificationData.put("bigText", bigText)
-            notificationData.put("category", category)
-            notificationData.put("showWhen", showWhen)
-            notificationData.put("channelId", channelId)
-            notificationData.put("people", JSONArray(peopleList)) // Updated
-            notificationData.put("template", template)
-            notificationData.put("remoteInputHistory", JSONArray(remoteInputHistory))
-            notificationData.put("timestamp", iso8601whenTime)
-            notificationData.put("id", id)
-            notificationData.put("tag", tag)
-            notificationData.put("key", key)
-            notificationData.put("groupKey", groupKey)
-            notificationData.put("overrideGroupKey", overrideGroupKey)
-            notificationData.put("group", group)
-            notificationData.put("isOngoing", isOngoing)
-            notificationData.put("isClearable", isClearable)
-            notificationData.put("userHandle", userHandle)
-            notificationData.put("visibility", visibility)
-            notificationData.put("priority", priority)
-            notificationData.put("flags", flags)
-            notificationData.put("color", color)
-            notificationData.put("sound", sound)
-            notificationData.put("vibrate", vibrate)
-            notificationData.put("audioStreamType", audioStreamType)
-            notificationData.put("contentView", contentView)
-            notificationData.put("bigContentView", bigContentView)
-            notificationData.put("isGroupSummary", isGroupSummary)
 
-            // Add actions as a JSON array if available
-            if (actions != null) {
-                val actionsArray = JSONArray()
-                for (action in actions) {
-                    val actionData = JSONObject()
-                    actionData.put("title", action.title)
-                    actionData.put("actionIntent", action.actionIntent?.toString())
-                    actionsArray.put(actionData)
-                }
-                notificationData.put("actions", actionsArray)
-            }
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error creating JSON object: ${e.message}")
-            return
-        }
-
-        // Send data to backend
-        sendToBackend(notificationData)
-    }
-
-
-    private fun sendToBackend(notificationData: JSONObject) {
-        val JSON = "application/json; charset=utf-8".toMediaTypeOrNull()
-        val body = RequestBody.create(JSON, notificationData.toString())
-
-        Log.d(TAG, "Sending Data to Backend: $notificationData") // Log the JSON object being sent
-
-        val request = Request.Builder()
-            .url(BACKEND_URL)
-            .post(body)
-            .build()
-
-        CoroutineScope(Dispatchers.IO).launch {
+        // Save to Room DB
+        serviceScope.launch {
             try {
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    Log.d(TAG, "Notification sent successfully: ${response.body?.string()}")
-                } else {
-                    Log.e(TAG, "Failed to send notification: ${response.message}")
+                val existing = database.notificationDao().getNotificationById(id)
+                if (existing != null) {
+                    Log.d(TAG, "🔁 Duplicate notification ignored: $id")
+                    return@launch Unit
                 }
+
+                val entity = NotificationEntity(
+                    id = id,
+                    packageName = packageName,
+                    appName = appName,
+                    title = title,
+                    text = text,
+                    subText = subText,
+                    infoText = infoText,
+                    summaryText = summaryText,
+                    bigText = bigText,
+                    category = category,
+                    showWhen = showWhen.toString(),
+                    channelId = channelId,
+                    peopleList = peopleList?.joinToString(","),
+                    template = template,
+                    remoteInputHistory = remoteInputHistory?.joinToString(","),
+                    visibility = visibility.toString(),
+                    priority = priority.toString(),
+                    flags = flags.toString(),
+                    color = color?.toString(),
+                    sound = sound,
+                    vibrate = vibrate,
+                    audioStreamType = audioStreamType.toString(),
+                    contentView = contentView,
+                    bigContentView = bigContentView,
+                    groupKey = groupKey,
+                    group = group,
+                    overrideGroupKey = overrideGroupKey,
+                    isOngoing = isOngoing.toString(),
+                    isClearable = isClearable.toString(),
+                    userHandle = userHandle,
+                    timestamp = iso8601whenTime,
+                    isImportant = false
+                )
+                database.notificationDao().insert(entity)
+                Log.d(TAG, "✅ Notification saved to Room DB: $id")
+
+                // Call the notification processor
+                NotificationETL.processNotificationImportance(database, entity)
+
             } catch (e: Exception) {
-                Log.e(TAG, "Error sending notification: ${e.message}")
+                Log.e(TAG, "❌ Failed to save notification: ${e.message}")
             }
         }
-    }
-
-    override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        super.onNotificationRemoved(sbn)
-
-        // Log notification removal
-        Log.d(TAG, "Notification Removed: Package=${sbn.packageName}")
     }
 }
