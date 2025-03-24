@@ -18,7 +18,7 @@ import com.example.fyp_androidapp.viewmodel.NotificationsViewModel
 
 
 @Composable
-fun MainApp(authViewModel: AuthViewModel) {
+fun MainAppContent(authViewModel: AuthViewModel) {
     val navController: NavHostController = rememberNavController()
 
     Scaffold(
