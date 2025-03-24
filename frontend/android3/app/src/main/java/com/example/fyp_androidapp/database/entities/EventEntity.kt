@@ -13,5 +13,6 @@ data class EventEntity(
     val startTime: String,
     val endDate: String,
     val endTime: String,
-    val allDay: Boolean
+    val allDay: Boolean,
+    val buttonStatus: Int
 )

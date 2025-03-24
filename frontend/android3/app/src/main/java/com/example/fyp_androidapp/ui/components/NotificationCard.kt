@@ -33,11 +33,6 @@ fun NotificationCard(
         localButtonStatus = eventDetails?.buttonStatus
     }
 
-    // Debugging
-    Log.d("NotificationCard", "localButtonStatus: ${localButtonStatus}")
-    Log.d("NotificationCard", "Received Notification: ${notification}, ID: ${notification.id}")
-    Log.d("NotificationCard", "Received Event: ${eventDetails ?: "No Event"}")
-
     Card(
         modifier = Modifier
             .fillMaxWidth()

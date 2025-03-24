@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
-import com.example.fyp_androidapp.ui.MainApp
 import com.example.fyp_androidapp.ui.theme.FYP_AndroidAppTheme
 import com.example.fyp_androidapp.viewmodel.AuthViewModel
 import android.content.Context
@@ -16,10 +15,16 @@ import android.service.notification.NotificationListenerService
 import android.content.pm.PackageManager
 import android.text.TextUtils
 import android.util.Log
+import com.example.fyp_androidapp.database.DatabaseProvider
+import com.example.fyp_androidapp.ui.MainAppContent
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initially room database globally
+        DatabaseProvider.init(applicationContext)
+
 
         // Check if Notification Listener Permission is granted
         if (!isNotificationServiceEnabled()) {
@@ -40,7 +45,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val authViewModel = AuthViewModel() // Initialize the ViewModel
             FYP_AndroidAppTheme {
-                MainApp(authViewModel) // Pass ViewModel to MainApp
+                MainAppContent(authViewModel) // Pass ViewModel to MainApp
             }
         }
     }

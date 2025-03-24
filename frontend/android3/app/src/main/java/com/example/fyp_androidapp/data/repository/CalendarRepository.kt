@@ -1,18 +1,17 @@
 package com.example.fyp_androidapp.data.repository
 
 import android.util.Log
-import com.example.fyp_androidapp.Constants
 import com.example.fyp_androidapp.data.models.EventDetails
+import com.example.fyp_androidapp.database.DatabaseProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONArray
-import org.json.JSONObject
+import java.time.format.DateTimeParseException
 
 class CalendarRepository {
-    private val client = OkHttpClient()
+
+    private val db = DatabaseProvider.getDatabase()
+    private val eventDao = db.eventDao()
 
     /**
      * Fetch events for a specific month and return a Map of LocalDate to List<EventDetails>.
@@ -20,42 +19,37 @@ class CalendarRepository {
     suspend fun getEventsForMonth(year: Int, month: Int): Map<LocalDate, List<EventDetails>> {
         return withContext(Dispatchers.IO) {
             try {
-                val url = "${Constants.BASE_URL}/notifications/calendar_events?year=$year&month=$month"
-                val request = Request.Builder().url(url).get().build()
-                val response = client.newCall(request).execute()
+                val allEvents = eventDao.getAllEvents()
 
-                if (!response.isSuccessful) {
-                    Log.e("CalendarRepository", "Failed to fetch events for $year-$month")
-                    return@withContext emptyMap()
+                Log.d("CalendarRepository", "All Events from Room DB:\n${allEvents.joinToString("\n")}")
+
+                val eventsMap = mutableMapOf<LocalDate, MutableList<EventDetails>>()
+
+                for (event in allEvents) {
+                    try {
+                        val eventDate = LocalDate.parse(event.startDate)
+                        if (eventDate.year == year && eventDate.monthNumber == month) {
+                            val eventDetails = EventDetails(
+                                id = event.id,
+                                title = event.title,
+                                description = event.description,
+                                locationOrMeeting = "", // Add if needed
+                                allDay = event.allDay,
+                                startDate = event.startDate,
+                                startTime = event.startTime,
+                                endDate = event.endDate,
+                                endTime = event.endTime,
+                                buttonStatus = 1
+                            )
+                            eventsMap.getOrPut(eventDate) { mutableListOf() }.add(eventDetails)
+                        }
+                    } catch (e: DateTimeParseException) {
+                        Log.w("CalendarRepository", "Skipping event with invalid date: ${event.startDate}")
+                    }
                 }
 
-                val responseBody = response.body?.string() ?: return@withContext emptyMap()
-                val jsonArray = JSONArray(responseBody)
-
-                val fetchedEvents = mutableMapOf<LocalDate, MutableList<EventDetails>>()
-
-                for (i in 0 until jsonArray.length()) {
-                    val jsonEvent = jsonArray.getJSONObject(i)
-                    val eventDate = LocalDate.parse(jsonEvent.getString("start_date"))
-
-                    val eventDetails = EventDetails(
-                        id = jsonEvent.optString("id", ""), // ✅ Ensure ID is fetched
-                        title = jsonEvent.optString("title", "No Title"),
-                        description = jsonEvent.optString("description", "No Description"),
-                        locationOrMeeting = jsonEvent.optString("location", "Unknown Location"),
-                        allDay = jsonEvent.optBoolean("allDay", false),
-                        startDate = jsonEvent.optString("start_date", "Unknown Date"),
-                        startTime = jsonEvent.optString("start_time", "Unknown Time"),
-                        endDate = jsonEvent.optString("end_date", "Unknown Date"),
-                        endTime = jsonEvent.optString("end_time", "Unknown Time"),
-                        buttonStatus = jsonEvent.optInt("button_status", 0)
-                    )
-
-                    fetchedEvents.getOrPut(eventDate) { mutableListOf() }.add(eventDetails)
-                }
-
-                Log.d("CalendarRepository", "Fetched Events: $fetchedEvents") // ✅ Debugging log
-                fetchedEvents
+                Log.d("CalendarRepository", "Filtered Events for $month/$year:\n$eventsMap")
+                eventsMap
             } catch (e: Exception) {
                 Log.e("CalendarRepository", "Error fetching events: ${e.message}")
                 emptyMap()

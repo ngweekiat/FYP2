@@ -7,7 +7,7 @@ import com.example.fyp_androidapp.database.entities.NotificationEntity
 interface NotificationDao {
 
     @Query("SELECT * FROM notifications ORDER BY timestamp DESC")
-    suspend fun getAllNotifications(): List<NotificationEntity>
+    fun observeNotifications(): kotlinx.coroutines.flow.Flow<List<NotificationEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(notification: NotificationEntity)

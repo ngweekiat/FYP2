@@ -35,6 +35,6 @@ data class NotificationEntity(
     val isOngoing: String?,
     val isClearable: String?,
     val userHandle: String?,
-    val timestamp: String?,
+    val timestamp: Long,
     val isImportant: Boolean = false
 )

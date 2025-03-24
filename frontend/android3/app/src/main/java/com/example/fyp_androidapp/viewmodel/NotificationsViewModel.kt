@@ -10,14 +10,13 @@ import com.example.fyp_androidapp.data.repository.GoogleCalendarApiRepository
 import com.example.fyp_androidapp.data.repository.NotificationsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-
 
 class NotificationsViewModel(
     private val notificationsRepository: NotificationsRepository = NotificationsRepository(),
     private val eventsRepository: EventsRepository = EventsRepository(),
-    private val googleCalendarApiRepository: GoogleCalendarApiRepository = GoogleCalendarApiRepository() // ✅ Inject GoogleCalendarApiRepository
-
+    private val googleCalendarApiRepository: GoogleCalendarApiRepository = GoogleCalendarApiRepository()
 ) : ViewModel() {
 
     private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
@@ -29,26 +28,20 @@ class NotificationsViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    private var lastVisibleNotificationId: String? = null
+    init {
+        observeNotificationsFlow()
+    }
 
-    fun fetchNotifications(limit: Int = 20) {
-        if (_isLoading.value) return
-
-        _isLoading.value = true
+    private fun observeNotificationsFlow() {
         viewModelScope.launch {
-            val (newNotifications, lastVisibleId) = notificationsRepository.fetchNotifications(lastVisibleNotificationId, limit)
+            notificationsRepository.notificationsFlow.collectLatest { notificationList ->
+                _notifications.value = notificationList
 
-            if (newNotifications.isNotEmpty()) {
-                _notifications.value = _notifications.value + newNotifications
-                lastVisibleNotificationId = lastVisibleId
-
-                // Fetch event details only for important notifications
-                newNotifications.filter { it.isImportant }.forEach { notification ->
+                // Auto-fetch events for important notifications
+                notificationList.filter { it.isImportant }.forEach { notification ->
                     fetchCalendarEvent(notification.id)
                 }
             }
-
-            _isLoading.value = false
         }
     }
 
@@ -65,67 +58,53 @@ class NotificationsViewModel(
         viewModelScope.launch {
             Log.d("EventDetails", newEventDetails.toString())
 
-            // Send the event to google calendar
-            val success = googleCalendarApiRepository.upsertEventToGoogleCalendar(notificationId, newEventDetails)
-
             // Update UI immediately
-            val newEvent = newEventDetails.copy(buttonStatus = 1) // ✅ Ensure buttonStatus is set
-            Log.d("EventDetails", newEventDetails.toString())
+            val newEvent = newEventDetails.copy(buttonStatus = 1)
+            val updatedMap = _calendarEvents.value.toMutableMap()
+            updatedMap[notificationId] = newEvent
+            _calendarEvents.value = updatedMap
 
-            // Force recomposition by creating a new map instance
-            val newMap = _calendarEvents.value.toMutableMap().apply {
-                put(notificationId, newEvent)
-            }
-            _calendarEvents.value = newMap.toMap() // ✅ Ensure reactivity
-
-            // Update notification importance locally
+            // Update importance locally
             _notifications.value = _notifications.value.map {
                 if (it.id == notificationId) it.copy(isImportant = true) else it
             }
 
-            // Send update to backend
             notificationsRepository.updateNotificationImportance(notificationId, 1)
-
-            // Add event to the calendar
             eventsRepository.addEventToCalendar(notificationId, newEvent)
+
+            // Send the event to Google Calendar
+            val success = googleCalendarApiRepository.upsertEventToGoogleCalendar(notificationId, newEventDetails)
         }
     }
-
 
     fun discardEvent(notificationId: String, discardedEventDetails: EventDetails) {
         viewModelScope.launch {
             Log.d("EventDetails", "Discarding event: $discardedEventDetails")
 
-            // Call backend API to delete event from Google Calendar
-            val success = googleCalendarApiRepository.deleteEventFromGoogleCalendar(notificationId)
+            // Update local state with discarded status
+            val updatedEvent = discardedEventDetails.copy(buttonStatus = 2)
+            val updatedMap = _calendarEvents.value.toMutableMap().apply {
+                put(notificationId, updatedEvent)
+            }
+            _calendarEvents.value = updatedMap
+
+            // Mark notification as important locally
+            _notifications.value = _notifications.value.map {
+                if (it.id == notificationId) it.copy(isImportant = true) else it
+            }
+
+            // Update importance in Room
+            notificationsRepository.updateNotificationImportance(notificationId, 1)
+
+            // Write the discard to the Room database (event buttonStatus = 2)
+            val success = eventsRepository.updateEvent(notificationId, updatedEvent)
 
             if (success) {
-                Log.d("NotificationsViewModel", "Event successfully deleted from Google Calendar")
-
-                // Update event details in the local state
-                val updatedEvent = discardedEventDetails.copy(buttonStatus = 2) // ✅ Mark as discarded
-
-                // Ensure reactivity by updating the state properly
-                val newMap = _calendarEvents.value.toMutableMap().apply {
-                    put(notificationId, updatedEvent)
-                }
-                _calendarEvents.value = newMap.toMap() // ✅ Ensure reactivity
-
-                // Update notification importance locally
-                _notifications.value = _notifications.value.map {
-                    if (it.id == notificationId) it.copy(isImportant = true) else it
-                }
-
-                // Send update to backend
-                notificationsRepository.updateNotificationImportance(notificationId, 1)
-
-                // Remove event from the local database
-                eventsRepository.discardEvent(notificationId)
-
-                Log.d("NotificationsViewModel", "Event Discarded for Notification ID: $notificationId")
+                Log.d("NotificationsViewModel", "Event successfully discarded in Room: $notificationId")
             } else {
-                Log.e("NotificationsViewModel", "Failed to delete event from Google Calendar")
+                Log.e("NotificationsViewModel", "Failed to discard event: $notificationId")
             }
         }
     }
+
 }

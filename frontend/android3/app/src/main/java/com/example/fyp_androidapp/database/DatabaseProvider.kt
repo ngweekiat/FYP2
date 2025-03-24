@@ -1,4 +1,26 @@
-package com.example.fyp_androidapp.com.example.fyp_androidapp.database
+// DatabaseProvider.kt
+package com.example.fyp_androidapp.database
 
-class DatabaseProvider {
+import android.content.Context
+import androidx.room.Room
+
+object DatabaseProvider {
+    private lateinit var database: AppDatabase
+
+    fun init(context: Context) {
+        if (!::database.isInitialized) {
+            database = Room.databaseBuilder(
+                context.applicationContext,
+                AppDatabase::class.java,
+                "eventify.db"
+            ).build()
+        }
+    }
+
+    fun getDatabase(): AppDatabase {
+        if (!::database.isInitialized) {
+            throw IllegalStateException("DatabaseProvider not initialized. Call init() first.")
+        }
+        return database
+    }
 }

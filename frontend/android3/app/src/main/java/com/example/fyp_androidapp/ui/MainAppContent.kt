@@ -14,7 +14,6 @@ import com.example.fyp_androidapp.data.models.TableItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import com.example.fyp_androidapp.viewmodel.AuthViewModel
-import com.example.fyp_androidapp.viewmodel.NotificationsViewModel
 
 
 @Composable

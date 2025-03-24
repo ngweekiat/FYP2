@@ -35,23 +35,9 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
     LaunchedEffect(notifications) {
         notifications.forEach { notification ->
             val eventDetails = calendarEvents[notification.id]
-            Log.d("NotificationScreen", "Notification: ${notification}")
-            Log.d("NotificationScreen", "EventDetails: ${eventDetails ?: "No Event"}")
         }
     }
 
-    LaunchedEffect(lazyListState) {
-        snapshotFlow { lazyListState.layoutInfo }
-            .debounce(300L)
-            .collect { layoutInfo ->
-                val totalItems = layoutInfo.totalItemsCount
-                val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-
-                if (lastVisibleItemIndex >= totalItems - 1 && !isLoading) {
-                    viewModel.fetchNotifications()
-                }
-            }
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -63,9 +49,6 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
         ) {
             items(notifications) { notification ->
                 val eventDetails = calendarEvents[notification.id]
-
-                Log.d("NotificationScreen", "Passing Notification: ${notification}, ID: ${notification.id}")
-                Log.d("NotificationScreen", "Passing Event: ${eventDetails ?: "No Event"}")
 
                 Column {
                     NotificationCard(
@@ -106,10 +89,6 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
         EventPopupDialog(
             eventDetails = calendarEvents[selectedNotification!!.id] ?: EventDetails(),
             onSave = { newEventDetails ->
-                Log.d(
-                    "NotificationScreen",
-                    "Saving Event: $newEventDetails for Notification ID: ${selectedNotification!!.id}"
-                )
                 viewModel.addEvent(
                     selectedNotification!!.id,
                     newEventDetails

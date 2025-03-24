@@ -25,8 +25,7 @@ object NotificationETL {
                 Log.d("NotificationProcessor", "📌 Important event detected by LLM: ${entity.id}")
                 database.notificationDao().updateImportance(entity.id, true)
 
-                val timestampLong = entity.timestamp?.toLongOrNull() ?: 0L // Default to 0L if invalid
-                val isoTimestamp = Instant.ofEpochMilli(timestampLong)
+                val isoTimestamp = Instant.ofEpochMilli(entity.timestamp)
                     .atZone(ZoneOffset.UTC)
                     .format(DateTimeFormatter.ISO_INSTANT)
 
@@ -58,7 +57,8 @@ object NotificationETL {
             startTime = json.getString("start_time"),
             endDate = json.getString("end_date"),
             endTime = json.getString("end_time"),
-            allDay = json.getBoolean("all_day_event")
+            allDay = json.getBoolean("all_day_event"),
+            buttonStatus = 0
         )
     }
 }

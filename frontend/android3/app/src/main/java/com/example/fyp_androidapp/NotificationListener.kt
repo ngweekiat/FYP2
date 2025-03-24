@@ -13,6 +13,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.security.MessageDigest
 import com.example.fyp_androidapp.database.AppDatabase
+import com.example.fyp_androidapp.database.DatabaseProvider
 import com.example.fyp_androidapp.utils.NotificationETL
 
 
@@ -26,9 +27,8 @@ class NotificationListener : NotificationListenerService() {
     private val TAG = "NotificationListener"
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
-    private val database: AppDatabase by lazy {
-        AppDatabase.getInstance(applicationContext)
-    }
+    val database = DatabaseProvider.getDatabase()
+
 
     override fun onCreate() {
         super.onCreate()
@@ -46,9 +46,6 @@ class NotificationListener : NotificationListenerService() {
         val groupKey = sbn.groupKey
         val group = sbn.notification.group
         val whenTime = sbn.notification.`when` // Specific timestamp for when the notification was created
-        val iso8601whenTime = Instant.ofEpochMilli(whenTime)//Convert to iso time
-            .atZone(ZoneOffset.UTC)
-            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
         val isOngoing = sbn.isOngoing
         val isClearable = sbn.isClearable
         val overrideGroupKey = sbn.overrideGroupKey
@@ -91,7 +88,7 @@ class NotificationListener : NotificationListenerService() {
         val actions = notification.actions
 
         // Generate unique ID from the hash value of rawID
-        val rawId = "$key|$iso8601whenTime"
+        val rawId = "$key|$whenTime"
         val id = generateHashedId(rawId)
 
         // Fetch application name safely
@@ -147,11 +144,12 @@ class NotificationListener : NotificationListenerService() {
                     isOngoing = isOngoing.toString(),
                     isClearable = isClearable.toString(),
                     userHandle = userHandle,
-                    timestamp = iso8601whenTime,
+                    timestamp = whenTime,
                     isImportant = false
                 )
                 database.notificationDao().insert(entity)
                 Log.d(TAG, "✅ Notification saved to Room DB: $id")
+
 
                 // Call the notification processor
                 NotificationETL.processNotificationImportance(database, entity)
