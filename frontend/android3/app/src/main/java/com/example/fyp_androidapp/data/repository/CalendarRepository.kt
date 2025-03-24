@@ -19,7 +19,7 @@ class CalendarRepository {
     suspend fun getEventsForMonth(year: Int, month: Int): Map<LocalDate, List<EventDetails>> {
         return withContext(Dispatchers.IO) {
             try {
-                val allEvents = eventDao.getAllEvents()
+                val allEvents = eventDao.getAllEvents().filter { it.buttonStatus == 1 }
 
                 Log.d("CalendarRepository", "All Events from Room DB:\n${allEvents.joinToString("\n")}")
 

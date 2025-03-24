@@ -63,7 +63,7 @@ class EventsRepository {
         return withContext(Dispatchers.IO) {
             try {
                 val entity = eventDao.getEventById(eventId) ?: return@withContext null
-                val discardedEntity = entity.copy() // No title modification
+                val discardedEntity = entity.copy(buttonStatus = 2)
                 eventDao.insertEvent(discardedEntity)
                 Log.d("EventsRepository", "Event discarded (same data): $discardedEntity")
                 EventDetails(
@@ -84,6 +84,9 @@ class EventsRepository {
             }
         }
     }
+
+
+
 
     suspend fun updateEvent(notificationId: String, updatedEvent: EventDetails): Boolean {
         return withContext(Dispatchers.IO) {

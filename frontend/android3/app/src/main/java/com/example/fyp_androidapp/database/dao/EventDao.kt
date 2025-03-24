@@ -19,4 +19,5 @@ interface EventDao {
     suspend fun getAllEvents(): List<EventEntity>
 
 
+
 }
