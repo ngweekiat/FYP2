@@ -18,8 +18,6 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.security.MessageDigest
 import com.example.fyp_androidapp.Constants
-import com.example.fyp_androidapp.data.database.AppDatabase
-import com.example.fyp_androidapp.data.database.NotificationDao
 
 
 fun generateHashedId(input: String): String {
@@ -29,14 +27,12 @@ fun generateHashedId(input: String): String {
 
 class NotificationListener : NotificationListenerService() {
     private val TAG = "NotificationListener"
-    private lateinit var database: AppDatabase // Add database instance
-    private lateinit var notificationDao: NotificationDao // Add DAO instance
+    private val BACKEND_URL = "${Constants.BASE_URL}/notifications"
+    private val client = OkHttpClient()
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "🚀 NotificationListener service created")
-        database = AppDatabase.getDatabase(applicationContext)
-        notificationDao = database.notificationDao()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -161,10 +157,8 @@ class NotificationListener : NotificationListenerService() {
             return
         }
 
-        // Insert into Room database using DAO
-        CoroutineScope(Dispatchers.IO).launch {
-            notificationDao.insertNotification(notificationEntity)
-        }
+        // Send data to backend
+        sendToBackend(notificationData)
     }
 
 
