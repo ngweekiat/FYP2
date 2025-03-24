@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -116,6 +117,11 @@ dependencies {
     testImplementation ("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.7")
+
+    // Room dependencies
+    implementation ("androidx.room:room-runtime:2.6.1")
+    kapt ("androidx.room:room-compiler:2.6.1")
+
     }
 tasks.withType<Test> {
     useJUnitPlatform()
