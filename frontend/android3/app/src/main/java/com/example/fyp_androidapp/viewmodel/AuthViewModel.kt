@@ -16,7 +16,7 @@ data class SimpleUser(
 )
 
 class AuthViewModel(
-    private val authRepository: AuthRepository,
+     val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _accounts = MutableStateFlow<List<SimpleUser>>(emptyList())
