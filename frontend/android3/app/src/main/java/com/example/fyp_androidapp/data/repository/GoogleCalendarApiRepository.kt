@@ -12,7 +12,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
 class GoogleCalendarApiRepository(
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val authRepository: AuthRepository
 ) {
     private val client = OkHttpClient()
     private val TAG = "GoogleCalendarSync"
@@ -23,9 +24,9 @@ class GoogleCalendarApiRepository(
             var allSuccessful = true
 
             for (user in users) {
-                val accessToken = user.accessToken
+                val accessToken = getValidAccessToken(user.uid, user.accessToken, user.refreshToken)
                 if (accessToken.isNullOrEmpty()) {
-                    Log.e(TAG, "Access token missing for user: ${user.uid}")
+                    Log.e(TAG, "Failed to get valid access token for user: ${user.uid}")
                     allSuccessful = false
                     continue
                 }
@@ -44,7 +45,6 @@ class GoogleCalendarApiRepository(
                     })
                 }
 
-                // 🔁 Try update first
                 val updateRequest = Request.Builder()
                     .url("https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId")
                     .addHeader("Authorization", "Bearer $accessToken")
@@ -63,7 +63,6 @@ class GoogleCalendarApiRepository(
                     if (updateResponse.isSuccessful) {
                         Log.d(TAG, "✅ Event updated for user ${user.uid}")
                     } else if (responseCode == 404) {
-                        // 🔁 Fallback to insert
                         val insertJson = JSONObject(eventJson.toString()).apply {
                             put("id", eventId)
                         }
@@ -107,9 +106,9 @@ class GoogleCalendarApiRepository(
             var allSuccessful = true
 
             for (user in users) {
-                val accessToken = user.accessToken
+                val accessToken = getValidAccessToken(user.uid, user.accessToken, user.refreshToken)
                 if (accessToken.isNullOrEmpty()) {
-                    Log.e(TAG, "Access token missing for user: ${user.uid}")
+                    Log.e(TAG, "Failed to get valid access token for user: ${user.uid}")
                     allSuccessful = false
                     continue
                 }
@@ -137,6 +136,29 @@ class GoogleCalendarApiRepository(
 
             return@withContext allSuccessful
         }
+    }
+
+    private suspend fun getValidAccessToken(userId: String, currentToken: String?, refreshToken: String?): String? {
+        if (currentToken.isNullOrEmpty()) return null
+
+        val testRequest = Request.Builder()
+            .url("https://www.googleapis.com/calendar/v3/users/me/calendarList")
+            .addHeader("Authorization", "Bearer $currentToken")
+            .build()
+
+        client.newCall(testRequest).execute().use { response ->
+            if (response.isSuccessful) {
+                return currentToken
+            } else if (response.code == 401) {
+                val newToken = authRepository.refreshAccessToken(refreshToken)
+                if (!newToken.isNullOrEmpty()) {
+                    userDao.updateAccessToken(userId, newToken)
+                    return newToken
+                }
+            }
+        }
+
+        return null
     }
 
     private fun logErrorJson(action: String, uid: String, code: Int, errorBody: String?) {

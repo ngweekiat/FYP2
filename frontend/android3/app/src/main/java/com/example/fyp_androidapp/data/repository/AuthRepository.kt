@@ -90,4 +90,35 @@ class AuthRepository(
             Pair(null, null)
         }
     }
+
+    suspend fun refreshAccessToken(refreshToken: String?): String? = withContext(Dispatchers.IO) {
+        if (refreshToken == null) return@withContext null
+
+        try {
+            val url = "https://oauth2.googleapis.com/token"
+            val requestBody = FormBody.Builder()
+                .add("client_id", "410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com")
+                .add("client_secret", "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")
+                .add("refresh_token", refreshToken)
+                .add("grant_type", "refresh_token")
+                .build()
+
+            val request = Request.Builder().url(url).post(requestBody).build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.e("TokenRefresh", "Failed to refresh token: ${response.code}")
+                    return@withContext null
+                }
+
+                val json = JSONObject(response.body?.string() ?: "")
+                return@withContext json.optString("access_token", null)
+            }
+        } catch (e: Exception) {
+            Log.e("TokenRefresh", "Error refreshing token", e)
+            null
+        }
+    }
+
+
 }

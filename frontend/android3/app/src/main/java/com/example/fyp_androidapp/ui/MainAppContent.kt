@@ -27,7 +27,14 @@ fun MainAppContent(authViewModel: AuthViewModel) {
     val context = LocalContext.current
     val userDao = remember { DatabaseProvider.getDatabase().userDao() }
 
-    val googleCalendarApiRepository = remember { GoogleCalendarApiRepository(userDao) }
+    // ✅ Access AuthRepository from AuthViewModel
+    val authRepository = authViewModel.authRepository
+
+    // ✅ Pass both userDao and authRepository
+    val googleCalendarApiRepository = remember {
+        GoogleCalendarApiRepository(userDao, authRepository)
+    }
+
     val notificationsViewModel = remember {
         NotificationsViewModel(googleCalendarApiRepository = googleCalendarApiRepository)
     }
@@ -35,7 +42,7 @@ fun MainAppContent(authViewModel: AuthViewModel) {
     val calendarRepository = remember { CalendarRepository() }
     val calendarViewModel = remember {
         CalendarViewModel(
-            userId = "currentUser", // You can replace this with the actual logged-in UID if available
+            userId = "currentUser",
             calendarRepository = calendarRepository,
             googleCalendarApiRepository = googleCalendarApiRepository
         )
@@ -67,7 +74,7 @@ fun MainAppContent(authViewModel: AuthViewModel) {
             composable("splash") { SplashScreen(navController, authViewModel) }
             composable("login") { LoginScreen(navController, authViewModel) }
             composable("notifications") { NotificationsScreen(notificationsViewModel) }
-            composable("textimage") {TextImageInputScreen(notificationsViewModel)}
+            composable("textimage") { TextImageInputScreen(notificationsViewModel) }
             composable("calendar") { CalendarScreen(viewModel = calendarViewModel) }
             composable("settings") { SettingsScreen(authViewModel) }
         }

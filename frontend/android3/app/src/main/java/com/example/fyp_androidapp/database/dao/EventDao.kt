@@ -17,7 +17,4 @@ interface EventDao {
 
     @Query("SELECT * FROM events")
     suspend fun getAllEvents(): List<EventEntity>
-
-
-
 }

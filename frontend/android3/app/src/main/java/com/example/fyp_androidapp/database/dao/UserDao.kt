@@ -18,4 +18,7 @@ interface UserDao {
     @Query("DELETE FROM users")
     suspend fun clearUsers()
 
+    @Query("UPDATE users SET accessToken = :newToken WHERE uid = :userId")
+    suspend fun updateAccessToken(userId: String, newToken: String)
+
 }
