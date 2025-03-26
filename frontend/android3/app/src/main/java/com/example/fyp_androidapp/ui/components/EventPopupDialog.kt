@@ -33,6 +33,7 @@ fun EventPopupDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    
     var id by remember { mutableStateOf(TextFieldValue(eventDetails.id)) }
     var title by remember { mutableStateOf(TextFieldValue(eventDetails.title)) }
     var description by remember { mutableStateOf(TextFieldValue(eventDetails.description)) }
@@ -156,29 +157,9 @@ fun EventPopupDialog(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                         )
                     }
-
                     item {
-                        BasicTextField(
-                            value = locationOrMeeting,
-                            onValueChange = { locationOrMeeting = it },
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                            modifier = Modifier.fillMaxWidth(),
-                            decorationBox = { innerTextField ->
-                                Box(modifier = Modifier.fillMaxWidth()) {
-                                    if (locationOrMeeting.text.isEmpty()) {
-                                        Text(
-                                            text = "Add location or meeting link",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                            )
-                                        )
-                                    }
-                                    innerTextField()
-                                }
-                            }
-                        )
+                        LocationSection(location = locationOrMeeting, onLocationChange = { locationOrMeeting = it })
                     }
-
                     item {
                         Divider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                     }
@@ -305,6 +286,28 @@ fun DescriptionSection(description: TextFieldValue, onDescriptionChange: (TextFi
         }
     )
 }
+
+@Composable
+fun LocationSection(location: TextFieldValue, onLocationChange: (TextFieldValue) -> Unit) {
+    BasicTextField(
+        value = location,
+        onValueChange = onLocationChange,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+        modifier = Modifier.fillMaxWidth(),
+        decorationBox = { innerTextField ->
+            Box(modifier = Modifier.fillMaxWidth()) {
+                if (location.text.isEmpty()) {
+                    Text(
+                        text = "Add location or meeting link",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    )
+                }
+                innerTextField()
+            }
+        }
+    )
+}
+
 
 @Composable
 fun DateTimeSection(

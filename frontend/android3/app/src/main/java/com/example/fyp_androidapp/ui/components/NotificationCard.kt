@@ -151,12 +151,11 @@ fun NotificationCard(
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = "📍 ${eventDetails?.location}",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.secondary
                                 )
                             }
                         }
-
                     }
                 } else if (localButtonStatus == 2) {
                     Spacer(modifier = Modifier.height(8.dp))

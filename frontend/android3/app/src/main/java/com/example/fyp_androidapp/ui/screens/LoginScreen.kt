@@ -1,7 +1,5 @@
 package com.example.fyp_androidapp.ui.screens
 
-import android.os.Handler
-import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -21,21 +19,28 @@ import com.example.fyp_androidapp.R
 import com.example.fyp_androidapp.viewmodel.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
+import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(navController: NavController, authViewModel: AuthViewModel) {
+    var isLoading by remember { mutableStateOf(true) }
+
     LaunchedEffect(Unit) {
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (authViewModel.accounts.value.isNotEmpty()) {
-                navController.navigate("notifications") {
-                    popUpTo("splash") { inclusive = true }
-                }
-            } else {
-                navController.navigate("login") {
-                    popUpTo("splash") { inclusive = true }
-                }
+        // ✅ Load persisted users from Room database
+        authViewModel.loadPersistedUsers()
+        delay(1000) // Optional delay to allow ViewModel to update accounts
+
+        if (authViewModel.accounts.value.isNotEmpty()) {
+            navController.navigate("notifications") {
+                popUpTo("splash") { inclusive = true }
             }
-        }, 2000)
+        } else {
+            navController.navigate("login") {
+                popUpTo("splash") { inclusive = true }
+            }
+        }
+
+        isLoading = false
     }
 
     Box(
@@ -46,6 +51,10 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel) {
             Image(painter = painterResource(id = R.drawable.eventify_logo), contentDescription = "Eventify Logo")
             Spacer(modifier = Modifier.height(16.dp))
             Text("Eventify", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            if (isLoading) {
+                Spacer(modifier = Modifier.height(24.dp))
+                CircularProgressIndicator()
+            }
         }
     }
 }

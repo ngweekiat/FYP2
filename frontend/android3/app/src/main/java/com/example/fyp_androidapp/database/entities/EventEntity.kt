@@ -14,6 +14,6 @@ data class EventEntity(
     val endDate: String,
     val endTime: String,
     val allDay: Boolean,
-    val location: String,              // ✅ Added field
+    val location: String,
     val buttonStatus: Int
 )

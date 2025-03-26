@@ -25,7 +25,7 @@ class EventsRepository {
                     endDate = entity.endDate,
                     endTime = entity.endTime,
                     allDay = entity.allDay,
-                    location = "",
+                    location = entity.location,
                     buttonStatus = entity.buttonStatus
                 )
             } catch (e: Exception) {

@@ -7,16 +7,67 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions"/>
     <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
 
-    <!-- Define the apps that can be queried -->
     <queries>
+        <!-- Global Messaging & Social -->
         <package android:name="com.whatsapp" />
         <package android:name="com.facebook.katana" />
         <package android:name="com.instagram.android" />
-        <package android:name="com.google.android.calendar" />
-        <package android:name="com.google.android.gm" />
-        <package android:name="com.android.settings" />
         <package android:name="org.telegram.messenger" />
+        <package android:name="com.snapchat.android" />
+        <package android:name="com.twitter.android" />
+        <package android:name="com.reddit.frontpage" />
+        <package android:name="com.discord" />
+        <package android:name="com.zhiliaoapp.musically" /> <!-- TikTok -->
+        <package android:name="com.linkedin.android" />
+
+        <!-- Chinese Messaging & Social -->
+        <package android:name="com.tencent.mm" /> <!-- WeChat -->
+        <package android:name="com.sina.weibo" /> <!-- Weibo -->
+        <package android:name="com.ss.android.article.news" /> <!-- Toutiao -->
+        <package android:name="com.zhihu.android" /> <!-- Zhihu -->
+        <package android:name="com.xingin.xhs" /> <!-- Xiaohongshu / RED -->
+        <package android:name="com.tencent.mobileqq" /> <!-- QQ -->
+        <package android:name="com.qiyi.video" /> <!-- iQIYI -->
+        <package android:name="tv.danmaku.bili" /> <!-- Bilibili -->
+        <package android:name="com.douban.frodo" /> <!-- Douban -->
+        <package android:name="com.kuaishou.nebula" /> <!-- Kuaishou -->
+
+        <!-- Chinese Productivity & Tools -->
+        <package android:name="com.tencent.wework" /> <!-- WeCom -->
+        <package android:name="com.alibaba.dingtalk" /> <!-- DingTalk -->
+        <package android:name="com.feishu.lark" /> <!-- Lark -->
+        <package android:name="com.snda.wifilocating" /> <!-- WiFi Master Key -->
+
+        <!-- Chinese Payment & Shopping -->
+        <package android:name="com.eg.android.AlipayGphone" /> <!-- Alipay -->
+        <package android:name="com.tencent.mobileqqi" />
+        <package android:name="com.jd.jxj" />
+        <package android:name="com.taobao.taobao" /> <!-- Taobao -->
+        <package android:name="com.jingdong.app.mall" /> <!-- JD -->
+        <package android:name="com.smzdm.client.android" /> <!-- SMZDM -->
+
+        <!-- Email & Calendar -->
+        <package android:name="com.google.android.gm" />
+        <package android:name="com.microsoft.office.outlook" />
+        <package android:name="com.google.android.calendar" />
+        <package android:name="com.yahoo.mobile.client.android.mail" />
+        <package android:name="com.samsung.android.email.provider" />
+
+        <!-- Notes & Productivity -->
+        <package android:name="com.google.android.keep" />
+        <package android:name="com.microsoft.office.word" />
+        <package android:name="com.evernote" />
+        <package android:name="com.todoist" />
+        <package android:name="com.notion.android" />
+
+        <!-- System & Tools -->
+        <package android:name="com.android.settings" />
+        <package android:name="com.google.android.apps.docs" />
+        <package android:name="com.google.android.apps.meetings" />
+        <package android:name="com.google.android.apps.messaging" />
+        <package android:name="com.samsung.android.messaging" />
     </queries>
+
 
     <application
         android:name=".MainApp"

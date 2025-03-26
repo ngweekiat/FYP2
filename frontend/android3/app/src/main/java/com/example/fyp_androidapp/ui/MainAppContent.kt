@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.fyp_androidapp.ui.screens.TextImageInputScreen
 import com.example.fyp_androidapp.data.models.TableItem
 import com.example.fyp_androidapp.data.repository.GoogleCalendarApiRepository
 import com.example.fyp_androidapp.database.DatabaseProvider
@@ -47,6 +48,7 @@ fun MainAppContent(authViewModel: AuthViewModel) {
             if (navController.currentBackStackEntry?.destination?.route !in listOf("splash", "login")) {
                 BottomTabBar(
                     tabs = listOf(
+                        TableItem("Text/Image", Icons.Default.Add, "textimage"),
                         TableItem("Notifications", Icons.Default.Notifications, "notifications"),
                         TableItem("Calendar", Icons.Default.CalendarToday, "calendar"),
                         TableItem("Settings", Icons.Default.Settings, "settings")
@@ -64,6 +66,7 @@ fun MainAppContent(authViewModel: AuthViewModel) {
         ) {
             composable("splash") { SplashScreen(navController, authViewModel) }
             composable("login") { LoginScreen(navController, authViewModel) }
+            composable("textimage") {TextImageInputScreen()}
             composable("notifications") { NotificationsScreen(notificationsViewModel) }
             composable("calendar") { CalendarScreen(viewModel = calendarViewModel) }
             composable("settings") { SettingsScreen(authViewModel) }
