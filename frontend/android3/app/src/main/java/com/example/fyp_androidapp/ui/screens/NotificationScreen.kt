@@ -19,25 +19,15 @@ import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
+fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()) {
     val notifications by viewModel.notifications.collectAsState()
-    val calendarEvents by viewModel.calendarEvents.collectAsState() // ✅ Observe event details from ViewModel
-    LaunchedEffect(calendarEvents) {
-        Log.d("NotificationScreen", "Updated Calendar Events: $calendarEvents")
-    }
+    val calendarEvents by viewModel.calendarEvents.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
     var selectedNotification by remember { mutableStateOf<Notification?>(null) }
     var showDialog by remember { mutableStateOf(false) }
 
     val lazyListState = rememberLazyListState()
-
-    // ✅ Log notifications and calendar events before passing them
-    LaunchedEffect(notifications) {
-        notifications.forEach { notification ->
-            val eventDetails = calendarEvents[notification.id]
-        }
-    }
-
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -50,28 +40,31 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
             items(notifications) { notification ->
                 val eventDetails = calendarEvents[notification.id]
 
-                Column {
-                    NotificationCard(
-                        notification = notification,
-                        eventDetails = eventDetails,  // ✅ Pass correct event details
-                        onAdd = {
-                            selectedNotification = notification
-                            showDialog = true
-                        },
-                        onDiscard = {
-                            val eventDetails = calendarEvents[notification.id] ?: EventDetails()
-                            viewModel.discardEvent(notification.id, eventDetails)
-                        },
-                        onLongPress = {  // ✅ Trigger dialog on long press
-                            selectedNotification = notification
-                            showDialog = true
-                        }
-                    )
-                    Divider(
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                        thickness = 1.dp
-                    )
+                // 🔐 Skip rendering until event is ready for important notifications
+                if (!notification.isImportant || eventDetails != null) {
+                    Column {
+                        NotificationCard(
+                            notification = notification,
+                            eventDetails = eventDetails,
+                            onAdd = {
+                                selectedNotification = notification
+                                showDialog = true
+                            },
+                            onDiscard = {
+                                val details = calendarEvents[notification.id] ?: EventDetails()
+                                viewModel.discardEvent(notification.id, details)
+                            },
+                            onLongPress = {
+                                selectedNotification = notification
+                                showDialog = true
+                            }
+                        )
+                        Divider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                            thickness = 1.dp
+                        )
+                    }
                 }
             }
 
@@ -84,7 +77,7 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
             }
         }
     }
-    // ✅ Show popup when a notification is selected
+
     if (showDialog && selectedNotification != null) {
         EventPopupDialog(
             eventDetails = calendarEvents[selectedNotification!!.id] ?: EventDetails(),
@@ -92,8 +85,8 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()){
                 viewModel.addEvent(
                     selectedNotification!!.id,
                     newEventDetails
-                ) // ✅ Pass event details for instant update
-                showDialog = false  // ✅ Close dialog
+                )
+                showDialog = false
             },
             onDismiss = { showDialog = false },
             onDiscard = { notificationId ->

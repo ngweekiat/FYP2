@@ -29,6 +29,7 @@ object LlmEventExtractor {
                 val response = chat.sendMessage(prompt)
 
                 val content = response.text?.trim()
+                Log.d("GeminiPrompt", "🔍 Gemini Input:\n$prompt")
                 Log.d("LlmEventExtractor", "Gemini response:\n$content")
 
                 if (content.isNullOrBlank()) {
@@ -56,27 +57,33 @@ object LlmEventExtractor {
 
     private fun buildPrompt(notificationText: String, receivedAtTimestamp: String): String {
         return """
-            You are an intelligent assistant that extracts calendar events from notifications.
-            You must respond strictly in valid JSON matching this format:
-            {
-              "title": "Event Title",
-              "description": "Optional event description",
-              "all_day_event": false,
-              "start_date": "YYYY-MM-DD",
-              "start_time": "HH:MM",
-              "end_date": "YYYY-MM-DD",
-              "end_time": "HH:MM"
-            }
+        You are an intelligent assistant that extracts calendar event information from a sequence of chat or notification messages.
 
-            Notification Details:
-            - Notification text: "$notificationText"
-            - Received timestamp: "$receivedAtTimestamp"
+        You must extract only the **last event mentioned** in the conversation history and return it in **strictly valid JSON format** like this:
+        {
+          "title": "Event Title",
+          "description": "Optional event description",
+          "all_day_event": false,
+          "start_date": "YYYY-MM-DD",
+          "start_time": "HH:MM",
+          "end_date": "YYYY-MM-DD",
+          "end_time": "HH:MM"
+        }
 
-            Rules:
-            1. Interpret relative dates using the timestamp above.
-            2. Don't guess. If something is unclear or missing, leave it as "".
-            3. Set "all_day_event": true if clearly stated.
-            4. Do not return anything else. JSON only.
-        """.trimIndent()
+        Chat History:
+        $notificationText
+
+        Current timestamp: "$receivedAtTimestamp"
+
+        Rules:
+        1. Use the current timestamp to interpret relative times like "tomorrow" or "next Friday".
+        2. If the end time/date is not provided, default it to the same as the start.
+        3. If time is missing but a date is present, leave the time as "" and set "all_day_event": true.
+        4. If any field is missing or unclear, leave it as "".
+        5. DO NOT return anything except the JSON. No explanation, comments, or markdown.
+
+        Output:
+    """.trimIndent()
     }
+
 }

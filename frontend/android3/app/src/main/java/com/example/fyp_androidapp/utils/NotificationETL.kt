@@ -18,8 +18,9 @@ object NotificationETL {
         entity: NotificationEntity
     ) {
         try {
-            val fullText = listOfNotNull(entity.title, entity.text, entity.bigText).joinToString(" ")
-            val importance = LlmEventImportance.detectEventImportance(fullText)
+            // 1. Check importance using ONLY the current message
+            val currentText = listOfNotNull(entity.title, entity.text, entity.bigText).joinToString(" ")
+            val importance = LlmEventImportance.detectEventImportance(currentText)
 
             if (importance == 1) {
                 Log.d("NotificationProcessor", "📌 Important event detected by LLM: ${entity.id}")
@@ -29,7 +30,42 @@ object NotificationETL {
                     .atZone(ZoneOffset.UTC)
                     .format(DateTimeFormatter.ISO_INSTANT)
 
-                val eventJson: JSONObject? = LlmEventExtractor.extractEventDetails(fullText, isoTimestamp)
+                // 2. Build extended context using previous 10 messages from same group
+                val groupMessages = if (!entity.groupKey.isNullOrBlank() && !entity.title.isNullOrBlank()) {
+                    database.notificationDao().getPreviousMessagesByGroupAndTitle(
+                        groupKey = entity.groupKey!!,
+                        title = entity.title!!,
+                        beforeTimestamp = entity.timestamp
+                    )
+                } else emptyList()
+
+// 🧠 Build context with timestamps
+                val contextText = groupMessages
+                    .sortedBy { it.timestamp }
+                    .joinToString("\n") { msg ->
+                        val msgTimestamp = Instant.ofEpochMilli(msg.timestamp)
+                            .atZone(ZoneOffset.UTC)
+                            .format(DateTimeFormatter.ISO_INSTANT)
+
+                        "[$msgTimestamp] ${listOfNotNull(msg.title, msg.text, msg.bigText).joinToString(" ")}"
+                    }
+
+                val currentText = listOfNotNull(entity.title, entity.text, entity.bigText).joinToString(" ")
+                val currentTimestamp = Instant.ofEpochMilli(entity.timestamp)
+                    .atZone(ZoneOffset.UTC)
+                    .format(DateTimeFormatter.ISO_INSTANT)
+
+                val fullTextWithHistory = """
+    Conversation History:
+    $contextText
+
+    [${currentTimestamp}] $currentText
+""".trimIndent()
+
+
+
+                // 3. Extract event with LLM using the extended context
+                val eventJson: JSONObject? = LlmEventExtractor.extractEventDetails(fullTextWithHistory, isoTimestamp)
 
                 if (eventJson != null) {
                     Log.d("NotificationProcessor", "📅 Extracted event: $eventJson")
@@ -47,6 +83,7 @@ object NotificationETL {
             Log.e("NotificationProcessor", "❌ Failed to process LLM: ${e.message}", e)
         }
     }
+
 
     private fun jsonToEventEntity(json: JSONObject, notificationId: String): EventEntity {
         return EventEntity(

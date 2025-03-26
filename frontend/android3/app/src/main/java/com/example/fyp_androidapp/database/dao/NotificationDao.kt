@@ -24,4 +24,19 @@ interface NotificationDao {
     @Query("UPDATE notifications SET isImportant = :isImportant WHERE id = :id")
     suspend fun updateImportance(id: String, isImportant: Boolean)
 
+    @Query("""
+    SELECT * FROM notifications
+    WHERE groupKey = :groupKey
+      AND title = :title
+      AND timestamp < :beforeTimestamp
+    ORDER BY timestamp DESC
+    LIMIT :limit
+""")
+    suspend fun getPreviousMessagesByGroupAndTitle(
+        groupKey: String,
+        title: String,
+        beforeTimestamp: Long,
+        limit: Int = 10
+    ): List<NotificationEntity>
+
 }
