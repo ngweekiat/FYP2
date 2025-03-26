@@ -1,4 +1,3 @@
-// Imports (no changes needed here)
 package com.example.fyp_androidapp.ui.components
 
 import android.app.DatePickerDialog
@@ -33,11 +32,10 @@ fun EventPopupDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    
+
     var id by remember { mutableStateOf(TextFieldValue(eventDetails.id)) }
     var title by remember { mutableStateOf(TextFieldValue(eventDetails.title)) }
     var description by remember { mutableStateOf(TextFieldValue(eventDetails.description)) }
-    var allDay by remember { mutableStateOf(eventDetails.allDay) }
     var startDate by remember { mutableStateOf(TextFieldValue(eventDetails.startDate)) }
     var startTime by remember { mutableStateOf(TextFieldValue(eventDetails.startTime)) }
     var endDate by remember { mutableStateOf(TextFieldValue(eventDetails.endDate)) }
@@ -52,7 +50,6 @@ fun EventPopupDialog(
     var endTimeError by remember { mutableStateOf(false) }
     var dateLogicError by remember { mutableStateOf(false) }
 
-    // Date formatter
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
     Dialog(onDismissRequest = onDismiss) {
@@ -79,55 +76,43 @@ fun EventPopupDialog(
                     }
                     Text(text = "Add Event", style = MaterialTheme.typography.titleMedium)
                     TextButton(onClick = {
-                        // Reset errors
+                        // Validation
                         titleError = title.text.isBlank()
                         startDateError = startDate.text.isBlank()
-                        startTimeError = !allDay && startTime.text.isBlank()
+                        startTimeError = startTime.text.isBlank()
                         endDateError = endDate.text.isBlank()
-                        endTimeError = !allDay && endTime.text.isBlank()
+                        endTimeError = endTime.text.isBlank()
                         dateLogicError = false
 
                         val baseValid = !titleError && !startDateError && !startTimeError && !endDateError && !endTimeError
 
                         if (baseValid) {
-                            if (!allDay) {
-                                try {
-                                    val startDT = LocalDateTime.parse("${startDate.text} ${startTime.text}", dateFormatter)
-                                    val endDT = LocalDateTime.parse("${endDate.text} ${endTime.text}", dateFormatter)
-                                    if (endDT.isAfter(startDT)) {
-                                        onSave(EventDetails(
+                            try {
+                                val startDT = LocalDateTime.parse("${startDate.text} ${startTime.text}", dateFormatter)
+                                val endDT = LocalDateTime.parse("${endDate.text} ${endTime.text}", dateFormatter)
+                                if (endDT.isAfter(startDT)) {
+                                    onSave(
+                                        EventDetails(
                                             id = eventDetails.id,
                                             title = title.text,
                                             description = description.text,
-                                            allDay = allDay,
+                                            allDay = false, // Always false
                                             startDate = startDate.text,
                                             startTime = startTime.text,
                                             endDate = endDate.text,
                                             endTime = endTime.text,
                                             location = locationOrMeeting.text
-                                        ))
-                                    } else {
-                                        dateLogicError = true
-                                        endDateError = true
-                                        endTimeError = true
-                                    }
-                                } catch (e: Exception) {
+                                        )
+                                    )
+                                } else {
                                     dateLogicError = true
                                     endDateError = true
                                     endTimeError = true
                                 }
-                            } else {
-                                onSave(EventDetails(
-                                    id = eventDetails.id,
-                                    title = title.text,
-                                    description = description.text,
-                                    allDay = allDay,
-                                    startDate = startDate.text,
-                                    startTime = startTime.text,
-                                    endDate = endDate.text,
-                                    endTime = endTime.text,
-                                    location = locationOrMeeting.text
-                                ))
+                            } catch (e: Exception) {
+                                dateLogicError = true
+                                endDateError = true
+                                endTimeError = true
                             }
                         }
                     }) {
@@ -146,61 +131,90 @@ fun EventPopupDialog(
                         TitleSection(title = title, onTitleChange = { title = it }, isError = titleError)
                     }
                     item {
-                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
                     }
                     item {
                         DescriptionSection(description = description, onDescriptionChange = { description = it })
                     }
                     item {
-                        Divider(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                        )
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
                     }
                     item {
                         LocationSection(location = locationOrMeeting, onLocationChange = { locationOrMeeting = it })
                     }
                     item {
-                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
                     }
                     item {
                         DateTimeSection(
-                            allDay = allDay,
-                            onAllDayChange = { allDay = it },
                             startDate = startDate.text,
                             startTime = startTime.text,
                             onStartDateClick = {
                                 val calendar = Calendar.getInstance()
-                                DatePickerDialog(context, { _, y, m, d ->
-                                    val selectedDate = LocalDate.of(y, m + 1, d)
-                                    startDate = TextFieldValue(selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
-                                }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+                                DatePickerDialog(
+                                    context,
+                                    { _, y, m, d ->
+                                        val selectedDate = LocalDate.of(y, m + 1, d)
+                                        startDate =
+                                            TextFieldValue(selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
+                                    },
+                                    calendar.get(Calendar.YEAR),
+                                    calendar.get(Calendar.MONTH),
+                                    calendar.get(Calendar.DAY_OF_MONTH)
+                                ).show()
                             },
                             onStartTimeClick = {
                                 val calendar = Calendar.getInstance()
-                                TimePickerDialog(context, { _, h, m ->
-                                    startTime = TextFieldValue("${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}")
-                                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
+                                TimePickerDialog(
+                                    context,
+                                    { _, h, m ->
+                                        startTime = TextFieldValue(
+                                            "${
+                                                h.toString().padStart(2, '0')
+                                            }:${m.toString().padStart(2, '0')}"
+                                        )
+                                    },
+                                    calendar.get(Calendar.HOUR_OF_DAY),
+                                    calendar.get(Calendar.MINUTE),
+                                    true
+                                ).show()
                             },
                             endDate = endDate.text,
                             endTime = endTime.text,
                             onEndDateClick = {
                                 val calendar = Calendar.getInstance()
-                                DatePickerDialog(context, { _, y, m, d ->
-                                    val selectedDate = LocalDate.of(y, m + 1, d)
-                                    endDate = TextFieldValue(selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
-                                }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+                                DatePickerDialog(
+                                    context,
+                                    { _, y, m, d ->
+                                        val selectedDate = LocalDate.of(y, m + 1, d)
+                                        endDate =
+                                            TextFieldValue(selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
+                                    },
+                                    calendar.get(Calendar.YEAR),
+                                    calendar.get(Calendar.MONTH),
+                                    calendar.get(Calendar.DAY_OF_MONTH)
+                                ).show()
                             },
                             onEndTimeClick = {
                                 val calendar = Calendar.getInstance()
-                                TimePickerDialog(context, { _, h, m ->
-                                    endTime = TextFieldValue("${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}")
-                                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
+                                TimePickerDialog(
+                                    context,
+                                    { _, h, m ->
+                                        endTime = TextFieldValue(
+                                            "${
+                                                h.toString().padStart(2, '0')
+                                            }:${m.toString().padStart(2, '0')}"
+                                        )
+                                    },
+                                    calendar.get(Calendar.HOUR_OF_DAY),
+                                    calendar.get(Calendar.MINUTE),
+                                    true
+                                ).show()
                             },
                             startDateError = startDateError,
                             startTimeError = startTimeError,
                             endDateError = endDateError,
-                            endTimeError = endTimeError
+                            endTimeError = endTimeError,
                         )
                     }
                     if (dateLogicError) {
@@ -234,6 +248,7 @@ fun EventPopupDialog(
         }
     }
 }
+
 
 // Rest of your components remain unchanged but are needed to compile:
 
@@ -311,8 +326,6 @@ fun LocationSection(location: TextFieldValue, onLocationChange: (TextFieldValue)
 
 @Composable
 fun DateTimeSection(
-    allDay: Boolean,
-    onAllDayChange: (Boolean) -> Unit,
     startDate: String,
     startTime: String,
     onStartDateClick: () -> Unit,
@@ -327,25 +340,18 @@ fun DateTimeSection(
     endTimeError: Boolean
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("All Day", style = MaterialTheme.typography.bodyMedium)
-            Switch(
-                checked = allDay,
-                onCheckedChange = onAllDayChange,
-                modifier = Modifier.graphicsLayer(scaleX = 0.8f, scaleY = 0.8f)
-            )
-        }
+        Text(
+            text = "Date & Time",
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = if (startDate.isNotEmpty()) startDate else "Select Date",
@@ -356,15 +362,13 @@ fun DateTimeSection(
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.width(16.dp))
-            if (!allDay) {
-                Text(
-                    text = if (startTime.isNotEmpty()) startTime else "Select Time",
-                    modifier = Modifier
-                        .clickable(onClick = onStartTimeClick)
-                        .background(if (startTimeError) Color(0xFFFFCDD2) else Color.Transparent),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            Text(
+                text = if (startTime.isNotEmpty()) startTime else "Select Time",
+                modifier = Modifier
+                    .clickable(onClick = onStartTimeClick)
+                    .background(if (startTimeError) Color(0xFFFFCDD2) else Color.Transparent),
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
 
         Row(
@@ -383,15 +387,14 @@ fun DateTimeSection(
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.width(16.dp))
-            if (!allDay) {
-                Text(
-                    text = if (endTime.isNotEmpty()) endTime else "Select Time",
-                    modifier = Modifier
-                        .clickable(onClick = onEndTimeClick)
-                        .background(if (endTimeError) Color(0xFFFFCDD2) else Color.Transparent),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            Text(
+                text = if (endTime.isNotEmpty()) endTime else "Select Time",
+                modifier = Modifier
+                    .clickable(onClick = onEndTimeClick)
+                    .background(if (endTimeError) Color(0xFFFFCDD2) else Color.Transparent),
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
+

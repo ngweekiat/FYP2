@@ -148,15 +148,19 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
         EventPopupDialog(
             eventDetails = selectedEventDetails,
             onSave = { newEventDetails ->
-                // ✅ Check if the event has a valid ID before saving
-                val eventId =
-                    if (newEventDetails.id.isNotEmpty()) newEventDetails.id else System.currentTimeMillis()
-                        .toString()
+                val eventId = if (newEventDetails.id.isNotEmpty()) newEventDetails.id
+                else System.currentTimeMillis().toString()
+                val newEvent = newEventDetails.copy(id = eventId)
 
-                // ✅ Ensure the event gets updated correctly
-                viewModel.updateEvent(newEventDetails.copy(id = eventId))
-                viewModel.hideEventPopup()  // ✅ Hide popup after saving
-            },
+                if (selectedEventDetails.id.isEmpty()) {
+                    viewModel.addNewEvent(newEvent)
+                } else {
+                    val eventToAdd = newEventDetails.copy(id = eventId, buttonStatus = 1)
+                    viewModel.addNewEvent(eventToAdd)
+                }
+                viewModel.hideEventPopup()
+            }
+            ,
             onDismiss = { viewModel.hideEventPopup() },
             onDiscard = {
                 selectedEventDetails.id?.let { eventId ->

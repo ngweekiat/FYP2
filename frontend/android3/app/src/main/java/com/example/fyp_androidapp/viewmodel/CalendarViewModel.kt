@@ -71,6 +71,28 @@ class CalendarViewModel(
         _isPopupVisible.value = false
     }
 
+    fun addNewEvent(newEvent: EventDetails) {
+        viewModelScope.launch {
+            val cleanEvent = newEvent.copy(buttonStatus = 1)
+
+            val result = eventsRepository.addEventToCalendar(cleanEvent.id, cleanEvent)
+            val googleSuccess = googleCalendarApiRepository.upsertEventToGoogleCalendar(cleanEvent.id, cleanEvent)
+
+            if (result != null && googleSuccess) {
+                val eventDate = LocalDate.parse(cleanEvent.startDate)
+                fetchEventsForMonth(eventDate.year, eventDate.monthNumber)
+                Log.d("CalendarViewModel", "Event successfully added to Room DB and Google Calendar: $result")
+            } else {
+                if (result == null) Log.e("CalendarViewModel", "Failed to add event to Room DB")
+                if (!googleSuccess) Log.e("CalendarViewModel", "Failed to add event to Google Calendar")
+            }
+        }
+    }
+
+
+
+
+
     fun updateEvent(updatedEvent: EventDetails) {
         viewModelScope.launch {
             try {

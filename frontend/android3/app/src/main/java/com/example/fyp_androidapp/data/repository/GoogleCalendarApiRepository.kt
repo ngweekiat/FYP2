@@ -139,7 +139,10 @@ class GoogleCalendarApiRepository(
     }
 
     private suspend fun getValidAccessToken(userId: String, currentToken: String?, refreshToken: String?): String? {
-        if (currentToken.isNullOrEmpty()) return null
+        if (currentToken.isNullOrEmpty()) {
+            Log.e(TAG, "Current token is null or empty for user: $userId")
+            return null
+        }
 
         val testRequest = Request.Builder()
             .url("https://www.googleapis.com/calendar/v3/users/me/calendarList")
@@ -150,16 +153,36 @@ class GoogleCalendarApiRepository(
             if (response.isSuccessful) {
                 return currentToken
             } else if (response.code == 401) {
-                val newToken = authRepository.refreshAccessToken(refreshToken)
-                if (!newToken.isNullOrEmpty()) {
-                    userDao.updateAccessToken(userId, newToken)
-                    return newToken
+                Log.w(TAG, "Access token expired for user $userId. Attempting refresh...")
+
+                if (refreshToken.isNullOrEmpty()) {
+                    Log.e(TAG, "No refresh token available for user: $userId")
+                } else {
+                    val newToken = authRepository.refreshAccessToken(refreshToken)
+                    if (!newToken.isNullOrEmpty()) {
+                        userDao.updateAccessToken(userId, newToken)
+                        Log.d(TAG, "Access token refreshed for user: $userId")
+                        return newToken
+                    } else {
+                        Log.e(TAG, "Failed to refresh access token for user: $userId")
+                    }
                 }
+
+                // Fallback: Proceed with possibly expired token
+                return currentToken.also {
+                    Log.w(TAG, "Proceeding with possibly expired access token for user: $userId")
+                }
+            } else {
+                Log.e(TAG, "Access token check failed with code ${response.code} for user: $userId")
             }
         }
 
-        return null
+        return currentToken.also {
+            Log.w(TAG, "Proceeding with possibly expired access token for user: $userId")
+        }
     }
+
+
 
     private fun logErrorJson(action: String, uid: String, code: Int, errorBody: String?) {
         try {
