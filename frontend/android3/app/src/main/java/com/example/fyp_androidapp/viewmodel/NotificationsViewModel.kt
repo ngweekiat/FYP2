@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 class NotificationsViewModel(
     private val notificationsRepository: NotificationsRepository = NotificationsRepository(),
     private val eventsRepository: EventsRepository = EventsRepository(),
-    private val googleCalendarApiRepository: GoogleCalendarApiRepository = GoogleCalendarApiRepository()
+    private val googleCalendarApiRepository: GoogleCalendarApiRepository
 ) : ViewModel() {
 
     private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
@@ -81,7 +81,7 @@ class NotificationsViewModel(
         viewModelScope.launch {
             Log.d("EventDetails", "Discarding event: $discardedEventDetails")
 
-            // Update local state with discarded status
+            // Update local state
             val updatedEvent = discardedEventDetails.copy(buttonStatus = 2)
             val updatedMap = _calendarEvents.value.toMutableMap().apply {
                 put(notificationId, updatedEvent)
@@ -96,15 +96,23 @@ class NotificationsViewModel(
             // Update importance in Room
             notificationsRepository.updateNotificationImportance(notificationId, 1)
 
-            // Write the discard to the Room database (event buttonStatus = 2)
-            val success = eventsRepository.updateEvent(notificationId, updatedEvent)
-
-            if (success) {
+            // Update local DB
+            val localSuccess = eventsRepository.updateEvent(notificationId, updatedEvent)
+            if (localSuccess) {
                 Log.d("NotificationsViewModel", "Event successfully discarded in Room: $notificationId")
             } else {
-                Log.e("NotificationsViewModel", "Failed to discard event: $notificationId")
+                Log.e("NotificationsViewModel", "Failed to discard event locally: $notificationId")
+            }
+
+            // ❗️ Delete from Google Calendar
+            val googleSuccess = googleCalendarApiRepository.deleteEventFromGoogleCalendar(notificationId)
+            if (googleSuccess) {
+                Log.d("NotificationsViewModel", "Event deleted from Google Calendar: $notificationId")
+            } else {
+                Log.e("NotificationsViewModel", "Failed to delete from Google Calendar: $notificationId")
             }
         }
     }
+
 
 }

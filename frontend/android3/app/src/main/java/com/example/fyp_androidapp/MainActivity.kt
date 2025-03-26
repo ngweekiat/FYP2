@@ -10,11 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
 import com.example.fyp_androidapp.ui.theme.FYP_AndroidAppTheme
 import com.example.fyp_androidapp.viewmodel.AuthViewModel
-import android.content.Context
-import android.service.notification.NotificationListenerService
-import android.content.pm.PackageManager
-import android.text.TextUtils
-import android.util.Log
 import com.example.fyp_androidapp.data.repository.AuthRepository
 import com.example.fyp_androidapp.database.DatabaseProvider
 import com.example.fyp_androidapp.ui.MainAppContent
@@ -23,16 +18,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initially room database globally
+        // Initialize Room database globally
         DatabaseProvider.init(applicationContext)
 
-
-        // Check if Notification Listener Permission is granted
+        // Prompt for notification listener permission
         if (!isNotificationServiceEnabled()) {
             Toast.makeText(this, "Please enable notification access", Toast.LENGTH_LONG).show()
             openNotificationAccessSettings()
         }
 
+        // Full screen setup
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.systemUiVisibility = (
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -43,27 +38,27 @@ class MainActivity : ComponentActivity() {
                         or View.SYSTEM_UI_FLAG_FULLSCREEN
                 )
 
+        // Set main content
         setContent {
             val userDao = DatabaseProvider.getDatabase().userDao()
             val authRepository = AuthRepository(userDao)
             val authViewModel = AuthViewModel(authRepository)
+
             FYP_AndroidAppTheme {
                 MainAppContent(authViewModel)
             }
         }
     }
 
-    // Function to check if Notification Listener Service is enabled
     private fun isNotificationServiceEnabled(): Boolean {
         val pkgName = packageName
         val enabledListeners = Settings.Secure.getString(
             contentResolver,
             "enabled_notification_listeners"
         )
-        return !TextUtils.isEmpty(enabledListeners) && enabledListeners.contains(pkgName)
+        return !enabledListeners.isNullOrEmpty() && enabledListeners.contains(pkgName)
     }
 
-    // Function to open the settings page to enable Notification Access
     private fun openNotificationAccessSettings() {
         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

@@ -1,8 +1,8 @@
 package com.example.fyp_androidapp.data.repository
 
 import android.util.Log
-import com.example.fyp_androidapp.Constants
 import com.example.fyp_androidapp.data.models.EventDetails
+import com.example.fyp_androidapp.database.dao.UserDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -11,82 +11,131 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
-class GoogleCalendarApiRepository {
+class GoogleCalendarApiRepository(
+    private val userDao: UserDao
+) {
     private val client = OkHttpClient()
-    private val backendUrl = "${Constants.BASE_URL}/google-calendar"
 
-    /**
-     * Creates or updates an event in Google Calendar for all authenticated users.
-     */
     suspend fun upsertEventToGoogleCalendar(eventId: String, eventDetails: EventDetails): Boolean {
         return withContext(Dispatchers.IO) {
-            try {
-                val url = "$backendUrl/upsert-event"
+            val users = userDao.getAllUsers()
+            var allSuccessful = true
 
-                val requestBody = JSONObject().apply {
-                    put("eventId", eventId)
-                    put("eventDetails", JSONObject().apply {
-                        put("title", eventDetails.title)
-                        put("startDate", eventDetails.startDate)
-                        put("startTime", eventDetails.startTime)
-                        put("endDate", eventDetails.endDate ?: eventDetails.startDate)
-                        put("endTime", eventDetails.endTime ?: eventDetails.startTime)
-                        put("locationOrMeeting", eventDetails.locationOrMeeting ?: "")
-                        put("description", eventDetails.description ?: "")
+            for (user in users) {
+                val accessToken = user.accessToken
+                if (accessToken.isNullOrEmpty()) {
+                    Log.e("CalendarAPI", "Access token missing for user: ${user.uid}")
+                    allSuccessful = false
+                    continue
+                }
+
+                val eventJson = JSONObject().apply {
+                    put("summary", eventDetails.title)
+                    put("location", eventDetails.locationOrMeeting ?: "")
+                    put("description", eventDetails.description ?: "")
+                    put("start", JSONObject().apply {
+                        put("dateTime", "${eventDetails.startDate}T${formatTime(eventDetails.startTime)}")
+                        put("timeZone", "Asia/Singapore")
                     })
-                }.toString()
+                    put("end", JSONObject().apply {
+                        put("dateTime", "${eventDetails.endDate ?: eventDetails.startDate}T${formatTime(eventDetails.endTime ?: eventDetails.startTime)}")
+                        put("timeZone", "Asia/Singapore")
+                    })
+                }
 
-//                Log.d("GoogleCalendarApiRepo", "Sending upsert request: $requestBody")
-
-                val request = Request.Builder()
-                    .url(url)
-                    .put(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                val updateRequest = Request.Builder()
+                    .url("https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId")
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .addHeader("Content-Type", "application/json")
+                    .put(eventJson.toString().toRequestBody("application/json".toMediaTypeOrNull()))
                     .build()
 
-                val response = client.newCall(request).execute()
+                client.newCall(updateRequest).execute().use { updateResponse ->
+                    if (updateResponse.isSuccessful) {
+                        Log.d("CalendarAPI", "Event updated for user ${user.uid}")
+                    } else if (updateResponse.code == 404) {
+                        val insertJson = JSONObject(eventJson.toString()).apply {
+                            put("id", eventId)
+                        }
 
-                if (response.isSuccessful) {
-                    Log.d("GoogleCalendarApiRepo", "Event upserted successfully")
-                    return@withContext true
-                } else {
-                    Log.e("GoogleCalendarApiRepo", "Failed to upsert event: ${response.message}")
-                    return@withContext false
+                        val insertRequest = Request.Builder()
+                            .url("https://www.googleapis.com/calendar/v3/calendars/primary/events")
+                            .addHeader("Authorization", "Bearer $accessToken")
+                            .addHeader("Content-Type", "application/json")
+                            .post(insertJson.toString().toRequestBody("application/json".toMediaTypeOrNull()))
+                            .build()
+
+                        client.newCall(insertRequest).execute().use { insertResponse ->
+                            if (insertResponse.isSuccessful) {
+                                Log.d("GoogleCalendarApiRepository", "Event inserted for user ${user.uid}")
+                            } else {
+                                val errorBody = insertResponse.body?.string()
+                                logErrorJson("insert", user.uid, insertResponse.code, errorBody)
+                                allSuccessful = false
+                            }
+                        }
+                    } else {
+                        val errorBody = updateResponse.body?.string()
+                        logErrorJson("update", user.uid, updateResponse.code, errorBody)
+                        allSuccessful = false
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e("GoogleCalendarApiRepo", "Error upserting event", e)
-                return@withContext false
             }
+
+            return@withContext allSuccessful
         }
     }
 
     suspend fun deleteEventFromGoogleCalendar(eventId: String): Boolean {
         return withContext(Dispatchers.IO) {
-            try {
-                val url = "$backendUrl/delete-event"
+            val users = userDao.getAllUsers()
+            var allSuccessful = true
 
-                val requestBody = JSONObject().apply {
-                    put("eventId", eventId)
-                }.toString()
+            for (user in users) {
+                val accessToken = user.accessToken
+                if (accessToken.isNullOrEmpty()) {
+                    Log.e("CalendarAPI", "Access token missing for user: ${user.uid}")
+                    allSuccessful = false
+                    continue
+                }
 
                 val request = Request.Builder()
-                    .url(url)
-                    .delete(requestBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                    .url("https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId")
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .delete()
                     .build()
 
-                val response = client.newCall(request).execute()
-
-                if (response.isSuccessful) {
-                    Log.d("GoogleCalendarApiRepo", "Event deleted successfully")
-                    return@withContext true
-                } else {
-                    Log.e("GoogleCalendarApiRepo", "Failed to delete event: ${response.message}")
-                    return@withContext false
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        Log.d("GoogleCalendarApiRepository", "Event deleted for user ${user.uid}")
+                    } else {
+                        val errorBody = response.body?.string()
+                        logErrorJson("delete", user.uid, response.code, errorBody)
+                        allSuccessful = false
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e("GoogleCalendarApiRepo", "Error deleting event", e)
-                return@withContext false
             }
+
+            return@withContext allSuccessful
         }
     }
 
+    private fun logErrorJson(action: String, uid: String, code: Int, errorBody: String?) {
+        try {
+            val errorJson = JSONObject(errorBody ?: "")
+            Log.e(
+                "GoogleCalendarApiRepository",
+                "Failed to $action event for user $uid: $code\n${errorJson.toString(4)}"
+            )
+        } catch (e: Exception) {
+            Log.e(
+                "GoogleCalendarApiRepository",
+                "Failed to $action event for user $uid: $code\nRaw error: $errorBody"
+            )
+        }
+    }
+
+    private fun formatTime(time: String): String {
+        return if (time.length == 5) "$time:00" else time
+    }
 }

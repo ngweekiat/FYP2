@@ -1,28 +1,50 @@
 package com.example.fyp_androidapp.ui
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.fyp_androidapp.data.models.TableItem
+import com.example.fyp_androidapp.data.repository.GoogleCalendarApiRepository
+import com.example.fyp_androidapp.database.DatabaseProvider
 import com.example.fyp_androidapp.ui.components.BottomTabBar
 import com.example.fyp_androidapp.ui.screens.*
-import com.example.fyp_androidapp.data.models.TableItem
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import com.example.fyp_androidapp.viewmodel.AuthViewModel
-
+import com.example.fyp_androidapp.viewmodel.NotificationsViewModel
+import com.example.fyp_androidapp.data.repository.CalendarRepository
+import com.example.fyp_androidapp.viewmodel.CalendarViewModel
 
 @Composable
 fun MainAppContent(authViewModel: AuthViewModel) {
-    val navController: NavHostController = rememberNavController()
+    val context = LocalContext.current
+    val userDao = remember { DatabaseProvider.getDatabase().userDao() }
+
+    val googleCalendarApiRepository = remember { GoogleCalendarApiRepository(userDao) }
+    val notificationsViewModel = remember {
+        NotificationsViewModel(googleCalendarApiRepository = googleCalendarApiRepository)
+    }
+
+    val calendarRepository = remember { CalendarRepository() }
+    val calendarViewModel = remember {
+        CalendarViewModel(
+            userId = "currentUser", // You can replace this with the actual logged-in UID if available
+            calendarRepository = calendarRepository,
+            googleCalendarApiRepository = googleCalendarApiRepository
+        )
+    }
+
+    val navController = rememberNavController()
 
     Scaffold(
         bottomBar = {
-            // Hide BottomTabBar on splash and login screens
             if (navController.currentBackStackEntry?.destination?.route !in listOf("splash", "login")) {
                 BottomTabBar(
                     tabs = listOf(
@@ -38,15 +60,14 @@ fun MainAppContent(authViewModel: AuthViewModel) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "splash", // Start from SplashScreen
+            startDestination = "splash",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("splash") { SplashScreen(navController, authViewModel) }
             composable("login") { LoginScreen(navController, authViewModel) }
-            composable("notifications") { NotificationsScreen() }
-            composable("calendar") { CalendarScreen() }
+            composable("notifications") { NotificationsScreen(notificationsViewModel) }
+            composable("calendar") { CalendarScreen(viewModel = calendarViewModel) }
             composable("settings") { SettingsScreen(authViewModel) }
         }
     }
 }
-

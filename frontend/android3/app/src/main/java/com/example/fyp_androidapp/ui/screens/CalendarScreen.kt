@@ -18,7 +18,7 @@ import com.example.fyp_androidapp.viewmodel.CalendarViewModel
 import kotlinx.datetime.*
 
 @Composable
-fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
+fun CalendarScreen(viewModel: CalendarViewModel) {
     val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     var year by remember { mutableStateOf(currentDate.year) }
     var month by remember { mutableStateOf(currentDate.month) }
