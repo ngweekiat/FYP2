@@ -46,7 +46,6 @@ fun TextImageInputScreen(notificationsViewModel: NotificationsViewModel) {
     val coroutineScope = rememberCoroutineScope()
 
     var pastedText by remember { mutableStateOf("") }
-    var isPasteExpanded by remember { mutableStateOf(false) }
 
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -90,9 +89,7 @@ fun TextImageInputScreen(notificationsViewModel: NotificationsViewModel) {
             title = "Paste Text",
             subtitle = "Input or Paste your text",
             icon = Icons.Default.TextFields,
-            onClick = { isPasteExpanded = !isPasteExpanded }
-        ) {
-            if (isPasteExpanded) {
+            content = {
                 OutlinedTextField(
                     value = pastedText,
                     onValueChange = { pastedText = it },
@@ -114,7 +111,7 @@ fun TextImageInputScreen(notificationsViewModel: NotificationsViewModel) {
                             )
 
                             val mappedEvents = jsonList.mapIndexed { index, json ->
-                                val id = System.currentTimeMillis().toString() + (index + 1).toString() // Start IDs from "1"
+                                val id = System.currentTimeMillis().toString() + (index + 1).toString()
                                 id to EventDetails(
                                     id = id,
                                     title = json.optString("title", ""),
@@ -138,7 +135,8 @@ fun TextImageInputScreen(notificationsViewModel: NotificationsViewModel) {
                     Text(if (isExtracting) "Extracting..." else "Extract Events")
                 }
             }
-        }
+        )
+
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -154,18 +152,18 @@ fun TextImageInputScreen(notificationsViewModel: NotificationsViewModel) {
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text("Events", fontSize = 18.sp, modifier = Modifier.padding(bottom = 8.dp))
 
-        extractedEvents.forEach { (eventId, eventDetails) ->
+        extractedEvents.forEachIndexed { index, (eventId, eventDetails) ->
             NotificationCard(
                 notification = Notification(
                     id = eventId,
                     sender = "Pasted Text",
                     title = eventDetails.title,
                     content = pastedText,
-                    time = "Now",
+                    time = "${eventDetails.startDate} ${eventDetails.startTime}".trim(),
                     isImportant = true
                 ),
                 eventDetails = eventDetails,
@@ -181,9 +179,22 @@ fun TextImageInputScreen(notificationsViewModel: NotificationsViewModel) {
                     }
                     notificationsViewModel.discardEvent(eventId, updatedEvent)
                 },
-                onLongPress = {}
+                onLongPress = {
+                    dialogEventDetails = eventDetails
+                    dialogEventId = eventId
+                    showDialog = true
+                }
             )
+
+            if (index < extractedEvents.lastIndex) {
+                Divider(
+                    color = Color.Gray,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
         }
+
 
         if (showDialog && dialogEventDetails != null) {
             EventPopupDialog(
@@ -216,7 +227,6 @@ fun ShrinkCardButton(
     title: String,
     subtitle: String,
     icon: ImageVector,
-    onClick: () -> Unit,
     content: @Composable (() -> Unit)? = null
 ) {
     val baseHeight = if (content == null) 72.dp else Dp.Unspecified
@@ -226,7 +236,6 @@ fun ShrinkCardButton(
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = baseHeight)
-            .clickable { onClick() }
             .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFEEEEEE))
     ) {
@@ -247,3 +256,4 @@ fun ShrinkCardButton(
         }
     }
 }
+
