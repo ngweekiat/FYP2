@@ -45,7 +45,7 @@ fun MainAppContent(authViewModel: AuthViewModel) {
             composable("login") { LoginScreen(navController, authViewModel) }
             composable("notifications") { NotificationsScreen() }
             composable("calendar") { CalendarScreen() }
-            composable("settings") { SettingsScreen() }
+            composable("settings") { SettingsScreen(authViewModel) }
         }
     }
 }

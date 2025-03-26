@@ -1,44 +1,46 @@
 package com.example.fyp_androidapp.viewmodel
 
-import android.util.Log
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fyp_androidapp.data.repository.AuthRepository
-import com.google.firebase.auth.FirebaseUser
+import com.example.fyp_androidapp.database.dao.UserDao
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class AuthViewModel(private val authRepository: AuthRepository = AuthRepository()) : ViewModel() {
+data class SimpleUser(
+    val uid: String,
+    val email: String?,
+    val displayName: String?
+)
 
-    private val _accounts = MutableStateFlow<List<FirebaseUser>>(emptyList())
-    val accounts: StateFlow<List<FirebaseUser>> = _accounts
+class AuthViewModel(
+    private val authRepository: AuthRepository,
+) : ViewModel() {
 
-    init {
-        fetchCurrentUser()
-    }
+    private val _accounts = MutableStateFlow<List<SimpleUser>>(emptyList())
+    val accounts: StateFlow<List<SimpleUser>> = _accounts
 
-    private fun fetchCurrentUser() {
-        val user = authRepository.getCurrentUser()
-        if (user != null) {
-            _accounts.value = listOf(user)
-        }
-    }
-
-    fun signInWithGoogle(idToken: String?, authCode: String?) {
+    fun signInWithGoogle(uid: String, email: String?, displayName: String?, idToken: String?, authCode: String?) {
         viewModelScope.launch {
-            val user = authRepository.signInWithGoogle(idToken)
-            if (user != null) {
-                _accounts.value = _accounts.value + user
-                authRepository.sendTokenToBackend(user.uid, user.email, user.displayName, idToken, authCode)
-            }
+            authRepository.signInWithGoogle(uid, email, displayName, idToken, authCode)
+            _accounts.value = _accounts.value + SimpleUser(uid, email, displayName)
         }
     }
 
     fun signOut(userIndex: Int) {
         viewModelScope.launch {
-            authRepository.signOut()
-            _accounts.value = _accounts.value.toMutableList().apply { removeAt(userIndex) }
+            val user = _accounts.value.getOrNull(userIndex)
+            if (user != null) {
+                authRepository.signOut(user.uid)
+                _accounts.value = _accounts.value.toMutableList().apply { removeAt(userIndex) }
+            }
         }
+    }
+
+    fun getGoogleSignInClient(context: Context): GoogleSignInClient {
+        return authRepository.getGoogleSignInClient(context)
     }
 }

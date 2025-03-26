@@ -15,6 +15,7 @@ import android.service.notification.NotificationListenerService
 import android.content.pm.PackageManager
 import android.text.TextUtils
 import android.util.Log
+import com.example.fyp_androidapp.data.repository.AuthRepository
 import com.example.fyp_androidapp.database.DatabaseProvider
 import com.example.fyp_androidapp.ui.MainAppContent
 
@@ -43,9 +44,11 @@ class MainActivity : ComponentActivity() {
                 )
 
         setContent {
-            val authViewModel = AuthViewModel() // Initialize the ViewModel
+            val userDao = DatabaseProvider.getDatabase().userDao()
+            val authRepository = AuthRepository(userDao)
+            val authViewModel = AuthViewModel(authRepository)
             FYP_AndroidAppTheme {
-                MainAppContent(authViewModel) // Pass ViewModel to MainApp
+                MainAppContent(authViewModel)
             }
         }
     }

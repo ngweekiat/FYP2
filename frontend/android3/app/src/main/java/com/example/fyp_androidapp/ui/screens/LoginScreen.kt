@@ -3,6 +3,7 @@ package com.example.fyp_androidapp.ui.screens
 import android.os.Handler
 import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -19,24 +20,22 @@ import androidx.navigation.NavController
 import com.example.fyp_androidapp.R
 import com.example.fyp_androidapp.viewmodel.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.Scope
 
 @Composable
 fun SplashScreen(navController: NavController, authViewModel: AuthViewModel) {
     LaunchedEffect(Unit) {
         Handler(Looper.getMainLooper()).postDelayed({
-            if (authViewModel.accounts.value.isNotEmpty()) { // User is logged in
-                navController.navigate("notifications") { // Navigate to the main app
+            if (authViewModel.accounts.value.isNotEmpty()) {
+                navController.navigate("notifications") {
                     popUpTo("splash") { inclusive = true }
                 }
             } else {
-                navController.navigate("login") { // Navigate to login screen
+                navController.navigate("login") {
                     popUpTo("splash") { inclusive = true }
                 }
             }
-        }, 2000) // 2-second delay
+        }, 2000)
     }
 
     Box(
@@ -51,28 +50,31 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel) {
     }
 }
 
-
 @Composable
 fun LoginScreen(navController: NavController, authViewModel: AuthViewModel) {
     val context = LocalContext.current
-    val googleSignInClient = remember {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com")
-            .requestEmail()
-            .requestScopes(Scope("https://www.googleapis.com/auth/calendar.events"))
-            .requestServerAuthCode("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com", true)
-            .build()
-        GoogleSignIn.getClient(context, gso)
-    }
+    val googleSignInClient = remember { authViewModel.getGoogleSignInClient(context) }
 
     val signInLauncher = rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+        contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
             val account = task.getResult(ApiException::class.java)!!
-            authViewModel.signInWithGoogle(account.idToken, account.serverAuthCode)
-            navController.navigate("notifications") { popUpTo("login") { inclusive = true } }
+
+            val uid = account.id ?: account.email ?: account.displayName ?: "unknown"
+
+            authViewModel.signInWithGoogle(
+                uid = uid,
+                email = account.email,
+                displayName = account.displayName,
+                idToken = account.idToken,
+                authCode = account.serverAuthCode
+            )
+
+            navController.navigate("notifications") {
+                popUpTo("login") { inclusive = true }
+            }
         } catch (e: ApiException) {
             println("Google sign-in failed: ${e.localizedMessage}")
         }

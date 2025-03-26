@@ -1,6 +1,5 @@
 package com.example.fyp_androidapp.viewmodel
 
-import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,9 +14,10 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 
 class CalendarViewModel(
+    private val userId: String, // ✅ REQUIRED to fetch token from Room
     private val calendarRepository: CalendarRepository = CalendarRepository(),
     private val eventsRepository: EventsRepository = EventsRepository(),
-    private val googleCalendarApiRepository: GoogleCalendarApiRepository = GoogleCalendarApiRepository() // ✅ Inject GoogleCalendarApiRepository
+    private val googleCalendarApiRepository: GoogleCalendarApiRepository
 ) : ViewModel() {
 
     private val _events = MutableStateFlow<Map<LocalDate, List<EventDetails>>>(emptyMap())
@@ -39,8 +39,8 @@ class CalendarViewModel(
 
             fetchedEvents.values.flatten().forEach { event ->
                 try {
-                    val start = kotlinx.datetime.LocalDate.parse(event.startDate)
-                    val end = kotlinx.datetime.LocalDate.parse(event.endDate)
+                    val start = LocalDate.parse(event.startDate)
+                    val end = LocalDate.parse(event.endDate)
                     var current = start
 
                     while (current <= end) {
@@ -57,7 +57,6 @@ class CalendarViewModel(
             _events.value = expandedEvents
         }
     }
-
 
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
@@ -88,7 +87,6 @@ class CalendarViewModel(
                 }
 
                 val updatedEvents = _events.value.toMutableMap()
-
                 val existingEvents = updatedEvents[eventDate]?.toMutableList() ?: mutableListOf()
                 val index = existingEvents.indexOfFirst { it.id == updatedEvent.id }
 
@@ -97,21 +95,20 @@ class CalendarViewModel(
                 } else {
                     existingEvents.add(updatedEvent)
                 }
-                updatedEvents[eventDate] = existingEvents.toList() // ✅ Force recomposition by creating a new list
 
-                _events.value = updatedEvents.toMap() // ✅ Force recomposition by assigning a new instance
+                updatedEvents[eventDate] = existingEvents.toList()
+                _events.value = updatedEvents.toMap()
 
+                // Update locally and push to Google Calendar
                 val success = eventsRepository.updateEvent(updatedEvent.id, updatedEvent)
+                val googleSuccess = googleCalendarApiRepository.upsertEventToGoogleCalendar(updatedEvent.id, updatedEvent)
 
-                // Update to google
-                googleCalendarApiRepository.upsertEventToGoogleCalendar(updatedEvent.id, updatedEvent)
                 fetchEventsForMonth(eventDate.year, eventDate.monthNumber)
 
-                if (!success) {
-                    Log.e("CalendarViewModel", "Failed to update event on backend: $updatedEvent")
+                if (!success || !googleSuccess) {
+                    Log.e("CalendarViewModel", "Failed to update event in backend or Google Calendar")
                 } else {
                     Log.d("CalendarViewModel", "Successfully updated event: $updatedEvent")
-                    fetchEventsForMonth(eventDate.year, eventDate.monthNumber)
                 }
             } catch (e: Exception) {
                 Log.e("CalendarViewModel", "Error updating event: ${e.message}")
@@ -123,37 +120,35 @@ class CalendarViewModel(
         viewModelScope.launch {
             Log.d("CalendarViewModel", "Discarding event: $eventId")
 
-            // Call backend API to delete event from Google Calendar
-//            val success = googleCalendarApiRepository.deleteEventFromGoogleCalendar(eventId)
-            Log.d("CalendarViewModel", "Event successfully deleted from Google Calendar")
-
-            // Convert eventDate to LocalDate for map lookup
             val eventLocalDate = try {
                 LocalDate.parse(eventDate)
             } catch (e: Exception) {
-                Log.e("CalendarViewModel", "Invalid event start date: $eventDate")
+                Log.e("CalendarViewModel", "Invalid event date: $eventDate")
                 return@launch
             }
 
-            // Update local state: Remove the discarded event from _events map
             val updatedEvents = _events.value.toMutableMap()
             val eventList = updatedEvents[eventLocalDate]?.toMutableList() ?: mutableListOf()
 
             val eventIndex = eventList.indexOfFirst { it.id == eventId }
             if (eventIndex != -1) {
-                val discardedEvent = eventList[eventIndex].copy(buttonStatus = 2) // ✅ Mark as discarded
+                val discardedEvent = eventList[eventIndex].copy(buttonStatus = 2)
                 eventList[eventIndex] = discardedEvent
-                updatedEvents[eventLocalDate] = eventList.toList() // ✅ Force recomposition
+                updatedEvents[eventLocalDate] = eventList.toList()
                 _events.value = updatedEvents.toMap()
             }
 
-            // Notify backend to update event status
             eventsRepository.discardEvent(eventId)
 
-            fetchEventsForMonth(eventLocalDate.year, eventLocalDate.monthNumber) // 🔄 Refresh after discard
+            // 🧨 Now delete from Google Calendar
+            val googleSuccess = googleCalendarApiRepository.deleteEventFromGoogleCalendar(eventId)
+            if (!googleSuccess) {
+                Log.e("CalendarViewModel", "Failed to delete event from Google Calendar")
+            }
+
+            fetchEventsForMonth(eventLocalDate.year, eventLocalDate.monthNumber)
 
             Log.d("CalendarViewModel", "Event discarded: $eventId")
         }
     }
-
 }

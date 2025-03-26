@@ -1,8 +1,8 @@
-// DatabaseProvider.kt
 package com.example.fyp_androidapp.database
 
 import android.content.Context
 import androidx.room.Room
+import com.example.fyp_androidapp.database.dao.UserDao
 
 object DatabaseProvider {
     private lateinit var database: AppDatabase
@@ -22,5 +22,9 @@ object DatabaseProvider {
             throw IllegalStateException("DatabaseProvider not initialized. Call init() first.")
         }
         return database
+    }
+
+    fun getUserDao(): UserDao {
+        return getDatabase().userDao()
     }
 }

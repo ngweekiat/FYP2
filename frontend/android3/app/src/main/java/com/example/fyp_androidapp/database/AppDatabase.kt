@@ -6,13 +6,17 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.fyp_androidapp.database.dao.EventDao
 import com.example.fyp_androidapp.database.dao.NotificationDao
+import com.example.fyp_androidapp.database.dao.UserDao
 import com.example.fyp_androidapp.database.entities.EventEntity
 import com.example.fyp_androidapp.database.entities.NotificationEntity
+import com.example.fyp_androidapp.database.entities.UserEntity
 
-@Database(entities = [NotificationEntity::class, EventEntity::class], version = 1)
+@Database(entities = [NotificationEntity::class, EventEntity::class, UserEntity::class], version = 1)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun eventDao(): EventDao
+    abstract fun userDao(): UserDao
+
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null

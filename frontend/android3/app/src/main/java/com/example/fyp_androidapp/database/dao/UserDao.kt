@@ -1,4 +1,21 @@
-package com.example.fyp_androidapp.com.example.fyp_androidapp.database.dao
+package com.example.fyp_androidapp.database.dao
 
-class UserDao {
+import androidx.room.*
+import com.example.fyp_androidapp.database.entities.UserEntity
+
+@Dao
+interface UserDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUser(user: UserEntity)
+
+    @Query("SELECT * FROM users")
+    suspend fun getAllUsers(): List<UserEntity>
+
+    @Query("DELETE FROM users WHERE uid = :uid")
+    suspend fun deleteUserById(uid: String)
+
+    @Query("DELETE FROM users")
+    suspend fun clearUsers()
+
 }
