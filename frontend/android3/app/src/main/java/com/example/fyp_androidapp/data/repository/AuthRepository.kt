@@ -28,6 +28,10 @@ class AuthRepository(
         return com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
     }
 
+    suspend fun getAllUsers(): List<UserEntity> = withContext(Dispatchers.IO) {
+        userDao.getAllUsers()
+    }
+
     suspend fun signInWithGoogle(
         uid: String,
         email: String?,

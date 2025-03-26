@@ -21,6 +21,10 @@ import com.google.android.gms.common.api.ApiException
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: AuthViewModel) {
+    LaunchedEffect(Unit) {
+        viewModel.loadPersistedUsers()
+    }
+
     val context = LocalContext.current
     val accounts by viewModel.accounts.collectAsState()
 
