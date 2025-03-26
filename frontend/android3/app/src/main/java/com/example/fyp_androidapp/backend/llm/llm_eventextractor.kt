@@ -1,6 +1,7 @@
 package com.example.fyp_androidapp.backend.llm
 
 import android.util.Log
+import com.example.fyp_androidapp.Constants
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.coroutines.Dispatchers
@@ -11,7 +12,7 @@ object LlmEventExtractor {
 
     private val model = GenerativeModel(
         modelName = "gemini-2.0-flash",
-        apiKey = "AIzaSyDcpjLErwLkqoqCnvcKl6557PKKG86nkPM", // 🔐 Replace with secure storage
+        apiKey = Constants.GEMINI_API_KEY, // 🔐 Replace with secure storage
         generationConfig = generationConfig {
             temperature = 0.2f
             topK = 20

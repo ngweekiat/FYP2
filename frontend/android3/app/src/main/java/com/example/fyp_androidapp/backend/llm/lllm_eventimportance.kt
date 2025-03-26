@@ -1,6 +1,7 @@
 package com.example.fyp_androidapp.backend.llm
 
 import android.util.Log
+import com.example.fyp_androidapp.Constants
 import com.google.ai.client.generativeai.BuildConfig
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
@@ -11,7 +12,7 @@ object LlmEventImportance {
 
     private val model = GenerativeModel(
         modelName = "gemini-2.0-flash", // or gemini-pro if needed
-        apiKey = "AIzaSyDcpjLErwLkqoqCnvcKl6557PKKG86nkPM", // 🔐 Store safely via secrets-gradle-plugin
+        apiKey = Constants.GEMINI_API_KEY, // 🔐 Store safely via secrets-gradle-plugin
         generationConfig = generationConfig {
             temperature = 0.5f
             topK = 20

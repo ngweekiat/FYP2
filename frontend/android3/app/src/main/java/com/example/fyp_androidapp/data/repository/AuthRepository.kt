@@ -20,10 +20,10 @@ class AuthRepository(
 
     fun getGoogleSignInClient(context: Context): GoogleSignInClient {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com")
+            .requestIdToken(Constants.GOOGLE_CLIENT_ID)
             .requestEmail()
             .requestScopes(Scope("https://www.googleapis.com/auth/calendar.events"))
-            .requestServerAuthCode("410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com", true)
+            .requestServerAuthCode(Constants.GOOGLE_CLIENT_ID, true)
             .build()
         return com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
     }
@@ -65,8 +65,8 @@ class AuthRepository(
             val url = "https://oauth2.googleapis.com/token"
             val requestBody = FormBody.Builder()
                 .add("code", authCode)
-                .add("client_id", "410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com")
-                .add("client_secret", "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")
+                .add("client_id", Constants.GOOGLE_CLIENT_ID)
+                .add("client_secret", Constants.GOOGLE_CLIENT_SECRET)
                 .add("redirect_uri", "") // optional
                 .add("grant_type", "authorization_code")
                 .build()
@@ -97,8 +97,8 @@ class AuthRepository(
         try {
             val url = "https://oauth2.googleapis.com/token"
             val requestBody = FormBody.Builder()
-                .add("client_id", "410405106281-k82mf5kndd5e3vs1u01gg9hiihq8pe47.apps.googleusercontent.com")
-                .add("client_secret", "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")
+                .add("client_id", Constants.GOOGLE_CLIENT_ID)
+                .add("client_secret", Constants.GOOGLE_CLIENT_SECRET)
                 .add("refresh_token", refreshToken)
                 .add("grant_type", "refresh_token")
                 .build()
