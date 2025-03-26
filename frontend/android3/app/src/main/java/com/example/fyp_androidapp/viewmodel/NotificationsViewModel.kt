@@ -47,12 +47,20 @@ class NotificationsViewModel(
 
     fun fetchCalendarEvent(notificationId: String) {
         viewModelScope.launch {
-            val eventDetails = eventsRepository.fetchCalendarEvent(notificationId)
-            if (eventDetails != null) {
-                _calendarEvents.value = _calendarEvents.value + (notificationId to eventDetails)
+            repeat(5) { attempt ->
+                val eventDetails = eventsRepository.fetchCalendarEvent(notificationId)
+                if (eventDetails != null) {
+                    _calendarEvents.value = _calendarEvents.value + (notificationId to eventDetails)
+                    return@launch
+                } else {
+                    Log.d("NotificationsViewModel", "Attempt $attempt: Event not ready for $notificationId")
+                    kotlinx.coroutines.delay(1000) // Wait 1 second and retry
+                }
             }
+            Log.w("NotificationsViewModel", "Failed to load event after retries: $notificationId")
         }
     }
+
 
     fun addEvent(notificationId: String, newEventDetails: EventDetails) {
         viewModelScope.launch {

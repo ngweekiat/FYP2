@@ -41,31 +41,41 @@ fun NotificationsScreen(viewModel: NotificationsViewModel = viewModel()) {
                 val eventDetails = calendarEvents[notification.id]
 
                 // 🔐 Skip rendering until event is ready for important notifications
-                if (!notification.isImportant || eventDetails != null) {
-                    Column {
-                        NotificationCard(
-                            notification = notification,
-                            eventDetails = eventDetails,
-                            onAdd = {
-                                selectedNotification = notification
-                                showDialog = true
-                            },
-                            onDiscard = {
-                                val details = calendarEvents[notification.id] ?: EventDetails()
-                                viewModel.discardEvent(notification.id, details)
-                            },
-                            onLongPress = {
-                                selectedNotification = notification
-                                showDialog = true
-                            }
-                        )
-                        Divider(
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                            thickness = 1.dp
+                Column {
+                    NotificationCard(
+                        notification = notification,
+                        eventDetails = eventDetails,  // Will be null initially
+                        onAdd = {
+                            selectedNotification = notification
+                            showDialog = true
+                        },
+                        onDiscard = {
+                            val details = calendarEvents[notification.id] ?: EventDetails()
+                            viewModel.discardEvent(notification.id, details)
+                        },
+                        onLongPress = {
+                            selectedNotification = notification
+                            showDialog = true
+                        }
+                    )
+
+                    if (notification.isImportant && eventDetails == null) {
+                        // 🔄 Show temporary loading message for pending extraction
+                        Text(
+                            text = "⏳ Extracting event...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
                         )
                     }
+
+                    Divider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                        thickness = 1.dp
+                    )
                 }
+
             }
 
             item {

@@ -138,16 +138,25 @@ fun NotificationCard(
                                 text = eventDetails?.let {
                                     val formattedDate = if (it.startDate.isNotBlank()) DateUtils.formatDateOnly(it.startDate) else ""
                                     val formattedTime = if (it.startTime.isNotBlank()) DateUtils.formatTimeOnly(it.startTime) else ""
-
-                                    listOf(formattedDate, formattedTime) // ✅ Combine only non-empty values
+                                    listOf(formattedDate, formattedTime)
                                         .filter { it.isNotEmpty() }
-                                        .joinToString(" ") // ✅ Join with a space only if both exist
-                                } ?: "No Date"
-,
+                                        .joinToString(" ")
+                                } ?: "No Date",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary
                             )
+
+                            // ✅ New: Show location if it exists
+                            if (!eventDetails?.location.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "📍 ${eventDetails?.location}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
                         }
+
                     }
                 } else if (localButtonStatus == 2) {
                     Spacer(modifier = Modifier.height(8.dp))

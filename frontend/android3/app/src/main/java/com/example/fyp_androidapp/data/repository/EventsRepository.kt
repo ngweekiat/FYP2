@@ -25,7 +25,7 @@ class EventsRepository {
                     endDate = entity.endDate,
                     endTime = entity.endTime,
                     allDay = entity.allDay,
-                    locationOrMeeting = "",
+                    location = "",
                     buttonStatus = entity.buttonStatus
                 )
             } catch (e: Exception) {
@@ -47,6 +47,7 @@ class EventsRepository {
                     endDate = eventDetails.endDate,
                     endTime = eventDetails.endTime,
                     allDay = eventDetails.allDay,
+                    location = eventDetails.location,
                     buttonStatus = eventDetails.buttonStatus
                 )
                 eventDao.insertEvent(entity)
@@ -75,7 +76,7 @@ class EventsRepository {
                     endDate = discardedEntity.endDate,
                     endTime = discardedEntity.endTime,
                     allDay = discardedEntity.allDay,
-                    locationOrMeeting = "",
+                    location = "",
                     buttonStatus = 2
                 )
             } catch (e: Exception) {
@@ -100,6 +101,7 @@ class EventsRepository {
                     endDate = updatedEvent.endDate,
                     endTime = updatedEvent.endTime,
                     allDay = updatedEvent.allDay,
+                    location = updatedEvent.location,
                     buttonStatus =  updatedEvent.buttonStatus
                 )
                 eventDao.insertEvent(entity)

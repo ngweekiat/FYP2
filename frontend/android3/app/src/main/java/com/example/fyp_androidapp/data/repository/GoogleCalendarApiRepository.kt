@@ -31,7 +31,7 @@ class GoogleCalendarApiRepository(
 
                 val eventJson = JSONObject().apply {
                     put("summary", eventDetails.title)
-                    put("location", eventDetails.locationOrMeeting ?: "")
+                    put("location", eventDetails.location ?: "")
                     put("description", eventDetails.description ?: "")
                     put("start", JSONObject().apply {
                         put("dateTime", "${eventDetails.startDate}T${formatTime(eventDetails.startTime)}")

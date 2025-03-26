@@ -63,6 +63,7 @@ object LlmEventExtractor {
         {
           "title": "Event Title",
           "description": "Optional event description",
+          "location": "Event location or meeting link",
           "all_day_event": false,
           "start_date": "YYYY-MM-DD",
           "start_time": "HH:MM",
@@ -85,5 +86,6 @@ object LlmEventExtractor {
         Output:
     """.trimIndent()
     }
+
 
 }

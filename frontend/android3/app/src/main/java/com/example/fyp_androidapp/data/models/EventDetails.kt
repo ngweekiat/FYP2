@@ -9,6 +9,6 @@ data class EventDetails(
     val startTime: String = "", // Start time
     val endDate: String = "", // End date
     val endTime: String = "", // End time
-    val locationOrMeeting: String = "", // Add location/meeting time
+    val location: String = "", // Add location/meeting time
     val buttonStatus: Int = 0
 )

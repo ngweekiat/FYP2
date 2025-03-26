@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "events")
 data class EventEntity(
-    @PrimaryKey val id: String,  // <- now matches NotificationEntity.id
+    @PrimaryKey val id: String,
     val title: String,
     val description: String,
     val startDate: String,
@@ -14,5 +14,6 @@ data class EventEntity(
     val endDate: String,
     val endTime: String,
     val allDay: Boolean,
+    val location: String,              // ✅ Added field
     val buttonStatus: Int
 )

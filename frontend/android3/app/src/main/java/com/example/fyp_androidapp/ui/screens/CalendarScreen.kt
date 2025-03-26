@@ -126,7 +126,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                     startTime = "00:00",
                     endDate = selectedDate?.toString() ?: currentDate.toString(),
                     endTime = "23:59",
-                    locationOrMeeting = "",
+                    location = "",
                     description = "",
                     allDay = false,
                     buttonStatus = 1

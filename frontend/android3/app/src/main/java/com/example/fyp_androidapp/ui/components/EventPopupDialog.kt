@@ -41,7 +41,7 @@ fun EventPopupDialog(
     var startTime by remember { mutableStateOf(TextFieldValue(eventDetails.startTime)) }
     var endDate by remember { mutableStateOf(TextFieldValue(eventDetails.endDate)) }
     var endTime by remember { mutableStateOf(TextFieldValue(eventDetails.endTime)) }
-    var locationOrMeeting by remember { mutableStateOf(TextFieldValue(eventDetails.locationOrMeeting)) }
+    var locationOrMeeting by remember { mutableStateOf(TextFieldValue(eventDetails.location)) }
 
     // Error states
     var titleError by remember { mutableStateOf(false) }
@@ -103,7 +103,7 @@ fun EventPopupDialog(
                                             startTime = startTime.text,
                                             endDate = endDate.text,
                                             endTime = endTime.text,
-                                            locationOrMeeting = locationOrMeeting.text
+                                            location = locationOrMeeting.text
                                         ))
                                     } else {
                                         dateLogicError = true
@@ -125,7 +125,7 @@ fun EventPopupDialog(
                                     startTime = startTime.text,
                                     endDate = endDate.text,
                                     endTime = endTime.text,
-                                    locationOrMeeting = locationOrMeeting.text
+                                    location = locationOrMeeting.text
                                 ))
                             }
                         }
@@ -150,6 +150,35 @@ fun EventPopupDialog(
                     item {
                         DescriptionSection(description = description, onDescriptionChange = { description = it })
                     }
+                    item {
+                        Divider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                        )
+                    }
+
+                    item {
+                        BasicTextField(
+                            value = locationOrMeeting,
+                            onValueChange = { locationOrMeeting = it },
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    if (locationOrMeeting.text.isEmpty()) {
+                                        Text(
+                                            text = "Add location or meeting link",
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                            )
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        )
+                    }
+
                     item {
                         Divider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                     }

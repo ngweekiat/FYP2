@@ -33,7 +33,7 @@ class CalendarRepository {
                                 id = event.id,
                                 title = event.title,
                                 description = event.description,
-                                locationOrMeeting = "", // Add if needed
+                                location = "", // Add if needed
                                 allDay = event.allDay,
                                 startDate = event.startDate,
                                 startTime = event.startTime,

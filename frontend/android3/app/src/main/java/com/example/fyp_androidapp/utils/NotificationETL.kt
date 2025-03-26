@@ -95,6 +95,7 @@ object NotificationETL {
             endDate = json.getString("end_date"),
             endTime = json.getString("end_time"),
             allDay = json.getBoolean("all_day_event"),
+            location = json.optString("location", ""),
             buttonStatus = 0
         )
     }
