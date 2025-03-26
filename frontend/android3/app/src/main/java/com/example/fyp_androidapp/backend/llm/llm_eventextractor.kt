@@ -79,6 +79,7 @@ object LlmEventExtractor {
         Rules:
         1. Use the current timestamp to interpret relative times like "tomorrow" or "next Friday".
         2. If the end time/date is not provided, default it to the same as the start.
+        2A. If only the start time is found but no end time, assume the event lasts 1 hour and compute the end time accordingly.
         3. If time is missing but a date is present, leave the time as "" and set "all_day_event": true.
         4. If any field is missing or unclear, leave it as "".
         5. DO NOT return anything except the JSON. No explanation, comments, or markdown.
@@ -86,6 +87,4 @@ object LlmEventExtractor {
         Output:
     """.trimIndent()
     }
-
-
 }

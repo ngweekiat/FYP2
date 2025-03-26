@@ -48,8 +48,8 @@ fun MainAppContent(authViewModel: AuthViewModel) {
             if (navController.currentBackStackEntry?.destination?.route !in listOf("splash", "login")) {
                 BottomTabBar(
                     tabs = listOf(
-                        TableItem("Text/Image", Icons.Default.Add, "textimage"),
                         TableItem("Notifications", Icons.Default.Notifications, "notifications"),
+                        TableItem("Text/Image", Icons.Default.Add, "textimage"),
                         TableItem("Calendar", Icons.Default.CalendarToday, "calendar"),
                         TableItem("Settings", Icons.Default.Settings, "settings")
                     ),
@@ -66,8 +66,8 @@ fun MainAppContent(authViewModel: AuthViewModel) {
         ) {
             composable("splash") { SplashScreen(navController, authViewModel) }
             composable("login") { LoginScreen(navController, authViewModel) }
-            composable("textimage") {TextImageInputScreen()}
             composable("notifications") { NotificationsScreen(notificationsViewModel) }
+            composable("textimage") {TextImageInputScreen(notificationsViewModel)}
             composable("calendar") { CalendarScreen(viewModel = calendarViewModel) }
             composable("settings") { SettingsScreen(authViewModel) }
         }
