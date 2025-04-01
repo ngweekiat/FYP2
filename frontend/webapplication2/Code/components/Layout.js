@@ -1,6 +1,7 @@
+// 📁 components/Layout.js
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Mail, Bell, Calendar, Settings, Plus, User } from "lucide-react";
+import { Mail, Settings, Plus, User } from "lucide-react";
 import { useAuth } from "../utils/AuthContext";
 
 export default function Layout({ children }) {
@@ -12,7 +13,7 @@ export default function Layout({ children }) {
       {/* Sidebar */}
       <div className="bg-blue-500 text-white w-16 flex flex-col items-center py-4 space-y-6 relative h-full">
         {/* Navigation Links */}
-        {[ 
+        {[
           { name: "Email", path: "/email_page", icon: Mail },
           { name: "Settings", path: "/settings_page", icon: Settings },
         ].map((item) => {
@@ -35,10 +36,14 @@ export default function Layout({ children }) {
         {/* Spacer to push buttons down */}
         <div className="flex-1"></div>
 
-        {/* Floating Plus Button */}
+        {/* Floating Plus Button - Sign In Only */}
         <button
-          onClick={users.length > 0 ? () => alert("Event Creation Modal") : handleSignIn}
-          className="bg-white text-blue-900 p-3 rounded-full shadow-lg hover:bg-gray-200 transition"
+          onClick={users.length === 0 ? handleSignIn : null}
+          disabled={users.length > 0}
+          className={`bg-white text-blue-900 p-3 rounded-full shadow-lg transition ${
+            users.length > 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-200"
+          }`}
+          title={users.length > 0 ? "Already signed in" : "Sign in with Google"}
         >
           <Plus size={24} />
         </button>
